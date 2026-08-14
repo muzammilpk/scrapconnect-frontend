@@ -1,20 +1,61 @@
-function App() {
-  return (
-    <main className="landing-container">
-      <div className="badge">
-        <span className="badge-dot"></span>
-        Platform Initialization
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import BuyerDashboard from './pages/BuyerDashboard';
+import SellerDashboard from './pages/SellerDashboard';
+import ProtectedRoute from './components/ProtectedRoute';
+
+function HomeRedirect() {
+  const { user, isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="auth-wrapper">
+        <div className="status-pill">Loading ScrapConnect...</div>
       </div>
-      <h1 className="brand-title">ScrapConnect</h1>
-      <h2 className="tagline">Connect. Sell. Recycle.</h2>
-      <p className="description">
-        ScrapConnect connects scrap sellers with buyers in their service regions, making scrap collection easier and more efficient.
-      </p>
-      <div className="status-pill">
-        Step 2 — Frontend Initial Setup Complete
-      </div>
-    </main>
-  )
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <Navigate to={user?.role === 'buyer' ? '/buyer/dashboard' : '/seller/dashboard'} replace />;
 }
 
-export default App
+function App() {
+  return (
+    <AuthProvider>
+      <Router>
+        <Routes>
+          <Route path="/" element={<HomeRedirect />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+
+          <Route
+            path="/buyer/dashboard"
+            element={
+              <ProtectedRoute allowedRole="buyer">
+                <BuyerDashboard />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/seller/dashboard"
+            element={
+              <ProtectedRoute allowedRole="seller">
+                <SellerDashboard />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Router>
+    </AuthProvider>
+  );
+}
+
+export default App;
