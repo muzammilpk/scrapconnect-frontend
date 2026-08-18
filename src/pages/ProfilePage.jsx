@@ -164,6 +164,11 @@ function ProfilePage() {
           <button className="btn-secondary" onClick={handleDashboardNav}>
             ← Dashboard
           </button>
+          {user?.role === 'buyer' && (
+            <button className="btn-secondary nav-link-btn" onClick={() => navigate('/buyer/service-regions')}>
+              📍 Service Regions
+            </button>
+          )}
           <div className="user-info">
             <div className="user-name">{user?.name}</div>
             <span className={`role-tag ${user?.role}`}>

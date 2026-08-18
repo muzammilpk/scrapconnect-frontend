@@ -5,6 +5,7 @@ import RegisterPage from './pages/RegisterPage';
 import BuyerDashboard from './pages/BuyerDashboard';
 import SellerDashboard from './pages/SellerDashboard';
 import ProfilePage from './pages/ProfilePage';
+import ServiceRegionsPage from './pages/ServiceRegionsPage';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function HomeRedirect() {
@@ -39,6 +40,15 @@ function App() {
             element={
               <ProtectedRoute allowedRole="buyer">
                 <BuyerDashboard />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/buyer/service-regions"
+            element={
+              <ProtectedRoute allowedRole="buyer">
+                <ServiceRegionsPage />
               </ProtectedRoute>
             }
           />
