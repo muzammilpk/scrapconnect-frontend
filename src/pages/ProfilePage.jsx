@@ -169,6 +169,16 @@ function ProfilePage() {
               📍 Service Regions
             </button>
           )}
+          {user?.role === 'seller' && (
+            <>
+              <button className="btn-secondary nav-link-btn" onClick={() => navigate('/seller/scraps')}>
+                📦 My Listings
+              </button>
+              <button className="btn-secondary nav-link-btn" onClick={() => navigate('/seller/add-scrap')}>
+                ➕ Add Scrap
+              </button>
+            </>
+          )}
           <div className="user-info">
             <div className="user-name">{user?.name}</div>
             <span className={`role-tag ${user?.role}`}>

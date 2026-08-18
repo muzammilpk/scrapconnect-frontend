@@ -100,6 +100,57 @@ export const api = {
       method: 'DELETE',
     });
   },
+
+  // Seller Scrap Listing APIs
+  uploadScrapImages: async (formData) => {
+    const token = localStorage.getItem('scrapconnect_token');
+    const headers = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    const response = await fetch(`${API_BASE_URL}/scraps/upload`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || 'Image upload failed');
+    }
+    return data;
+  },
+
+  createScrap: async (scrapData) => {
+    return await request('/scraps', {
+      method: 'POST',
+      body: JSON.stringify(scrapData),
+    });
+  },
+
+  getMyScraps: async () => {
+    return await request('/scraps/my-listings', {
+      method: 'GET',
+    });
+  },
+
+  getScrapById: async (id) => {
+    return await request(`/scraps/${id}`, {
+      method: 'GET',
+    });
+  },
+
+  updateScrap: async (id, scrapData) => {
+    return await request(`/scraps/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(scrapData),
+    });
+  },
+
+  deleteScrap: async (id) => {
+    return await request(`/scraps/${id}`, {
+      method: 'DELETE',
+    });
+  },
 };
 
 export default api;
