@@ -58,6 +58,21 @@ export const api = {
       method: 'GET',
     });
   },
+
+  // Get user profile
+  getProfile: async () => {
+    return await request('/users/profile', {
+      method: 'GET',
+    });
+  },
+
+  // Update user profile and location
+  updateProfile: async (profileData) => {
+    return await request('/users/profile', {
+      method: 'PUT',
+      body: JSON.stringify(profileData),
+    });
+  },
 };
 
 export default api;

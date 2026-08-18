@@ -79,14 +79,31 @@ export const AuthProvider = ({ children }) => {
     setError(null);
   };
 
+  // Update profile handler
+  const updateProfile = async (profileData) => {
+    setError(null);
+    try {
+      const response = await api.updateProfile(profileData);
+      if (response.success && response.user) {
+        setUser(response.user);
+        return response;
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to update profile.');
+      throw err;
+    }
+  };
+
   const value = {
     user,
+    setUser,
     token,
     loading,
     error,
     login,
     register,
     logout,
+    updateProfile,
     isAuthenticated: !!user,
     isBuyer: user?.role === 'buyer',
     isSeller: user?.role === 'seller',
