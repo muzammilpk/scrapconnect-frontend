@@ -19,6 +19,10 @@ function ScrapDetailPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
+  // Matching buyers state
+  const [matchingBuyers, setMatchingBuyers] = useState([]);
+  const [loadingBuyers, setLoadingBuyers] = useState(false);
+
   useEffect(() => {
     const fetchScrapDetail = async () => {
       setLoading(true);
@@ -26,6 +30,21 @@ function ScrapDetailPage() {
         const res = await api.getScrapById(id);
         if (res.success && res.scrap) {
           setScrap(res.scrap);
+
+          // Fetch matching buyers if logged in user is the seller owner
+          if (user && (res.scrap.seller?._id === user._id || res.scrap.seller === user._id)) {
+            setLoadingBuyers(true);
+            try {
+              const matchRes = await api.getMatchingBuyers(id);
+              if (matchRes.success) {
+                setMatchingBuyers(matchRes.buyers || []);
+              }
+            } catch (mErr) {
+              console.error('Failed to fetch matching buyers:', mErr.message);
+            } finally {
+              setLoadingBuyers(false);
+            }
+          }
         }
       } catch (err) {
         setErrorMsg(err.message || 'Failed to load scrap listing details.');
@@ -35,7 +54,7 @@ function ScrapDetailPage() {
     };
 
     fetchScrapDetail();
-  }, [id]);
+  }, [id, user]);
 
   const handleDelete = async () => {
     setDeleting(true);
@@ -188,6 +207,41 @@ function ScrapDetailPage() {
                     <span>Published:</span> <span>{formatDate(scrap.createdAt)}</span>
                   </div>
                 </div>
+
+                {/* Location Matching Buyers Section (Seller Owner Only) */}
+                {isOwner && (
+                  <div className="detail-section matching-section">
+                    <h4 className="section-heading">🎯 Location Matching Buyers</h4>
+                    {loadingBuyers ? (
+                      <p className="detail-text text-muted">Searching for buyers in this region...</p>
+                    ) : matchingBuyers.length === 0 ? (
+                      <div className="matching-empty-box">
+                        <p className="detail-text text-muted">
+                          No registered buyers currently cover this specific service region.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="matching-buyers-box">
+                        <div className="matching-count-badge">
+                          ✅ <strong>{matchingBuyers.length}</strong> matching buyer{matchingBuyers.length > 1 ? 's' : ''} found in this region
+                        </div>
+                        <div className="matching-buyers-list">
+                          {matchingBuyers.map((b) => (
+                            <div key={b.id} className="matching-buyer-pill">
+                              <div className="buyer-pill-main">
+                                <span className="buyer-pill-name">👤 {b.name}</span>
+                                <span className="buyer-match-reason">{b.matchReason}</span>
+                              </div>
+                              <div className="buyer-pill-loc">
+                                📍 {b.matchingRegion.city}, {b.matchingRegion.district}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Action Buttons for Owner */}
                 {isOwner && (

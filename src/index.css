@@ -1869,6 +1869,82 @@ a:hover {
   margin-top: 0.75rem;
 }
 
+/* STEP 9: Location Matching Section Styles */
+.matching-section {
+  background-color: var(--color-bg);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+}
+
+.matching-buyers-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.matching-count-badge {
+  background-color: var(--color-light-green);
+  color: var(--color-dark-green);
+  border: 1px solid rgba(22, 163, 74, 0.3);
+  font-size: 0.875rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+}
+
+.matching-buyers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.matching-buyer-pill {
+  background-color: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: var(--shadow-sm);
+}
+
+.buyer-pill-main {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.buyer-pill-name {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--color-dark-green);
+}
+
+.buyer-match-reason {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  background-color: #FEF3C7;
+  color: #92400E;
+  border-radius: 9999px;
+}
+
+.buyer-pill-loc {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--color-muted-text);
+}
+
+.matching-empty-box {
+  background-color: var(--color-white);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 1rem;
+}
+
+
 
 
 

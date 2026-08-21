@@ -152,6 +152,12 @@ export const api = {
     });
   },
 
+  getMatchingBuyers: async (id) => {
+    return await request(`/scraps/${id}/matching-buyers`, {
+      method: 'GET',
+    });
+  },
+
   // Marketplace Browsing & Search (Buyer)
   getMarketplaceScraps: async (params = {}) => {
     const queryParams = new URLSearchParams();
