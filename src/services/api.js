@@ -151,6 +151,21 @@ export const api = {
       method: 'DELETE',
     });
   },
+
+  // Marketplace Browsing & Search (Buyer)
+  getMarketplaceScraps: async (params = {}) => {
+    const queryParams = new URLSearchParams();
+    Object.keys(params).forEach((key) => {
+      if (params[key] !== undefined && params[key] !== null && params[key] !== '') {
+        queryParams.append(key, params[key]);
+      }
+    });
+    const queryString = queryParams.toString();
+    const endpoint = `/scraps${queryString ? `?${queryString}` : ''}`;
+    return await request(endpoint, {
+      method: 'GET',
+    });
+  },
 };
 
 export default api;

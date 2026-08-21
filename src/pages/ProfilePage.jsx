@@ -165,9 +165,14 @@ function ProfilePage() {
             ← Dashboard
           </button>
           {user?.role === 'buyer' && (
-            <button className="btn-secondary nav-link-btn" onClick={() => navigate('/buyer/service-regions')}>
-              📍 Service Regions
-            </button>
+            <>
+              <button className="btn-secondary nav-link-btn" onClick={() => navigate('/buyer/browse')}>
+                🔍 Browse Scrap
+              </button>
+              <button className="btn-secondary nav-link-btn" onClick={() => navigate('/buyer/service-regions')}>
+                📍 Service Regions
+              </button>
+            </>
           )}
           {user?.role === 'seller' && (
             <>

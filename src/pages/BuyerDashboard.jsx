@@ -9,23 +9,31 @@ function BuyerDashboard() {
 
   const [regions, setRegions] = useState(user?.serviceRegions || []);
   const [loadingRegions, setLoadingRegions] = useState(false);
+  const [availableCount, setAvailableCount] = useState(null);
 
   useEffect(() => {
-    const loadRegions = async () => {
+    const loadData = async () => {
       setLoadingRegions(true);
       try {
-        const res = await api.getServiceRegions();
-        if (res.success) {
-          setRegions(res.serviceRegions || []);
+        const [regionsRes, scrapsRes] = await Promise.all([
+          api.getServiceRegions(),
+          api.getMarketplaceScraps({ limit: 1 }),
+        ]);
+
+        if (regionsRes.success) {
+          setRegions(regionsRes.serviceRegions || []);
+        }
+        if (scrapsRes.success) {
+          setAvailableCount(scrapsRes.totalListings || 0);
         }
       } catch (err) {
-        console.error('Failed to load regions summary:', err.message);
+        console.error('Failed to load dashboard data:', err.message);
       } finally {
         setLoadingRegions(false);
       }
     };
 
-    loadRegions();
+    loadData();
   }, []);
 
   const area = user?.location?.area;
@@ -34,11 +42,15 @@ function BuyerDashboard() {
 
   return (
     <div className="dashboard-container">
+      {/* Top Navbar */}
       <header className="navbar">
         <div className="navbar-brand">
           <span>♻️</span> ScrapConnect
         </div>
         <div className="user-badge">
+          <button className="btn-secondary nav-link-btn" onClick={() => navigate('/buyer/browse')}>
+            🔍 Browse Scrap
+          </button>
           <button className="btn-secondary nav-link-btn" onClick={() => navigate('/buyer/service-regions')}>
             📍 My Service Regions
           </button>
@@ -57,6 +69,7 @@ function BuyerDashboard() {
         </div>
       </header>
 
+      {/* Main Content */}
       <main className="dashboard-content">
         <div className="welcome-card">
           <h1 className="welcome-title">Buyer Dashboard</h1>
@@ -64,7 +77,7 @@ function BuyerDashboard() {
             Welcome, <strong>{user?.name}</strong>
           </p>
 
-          {/* Primary Profile Location */}
+          {/* Location Bar */}
           <div className="location-summary-card">
             <div className="location-summary-header">
               <span className="location-summary-icon">📍</span>
@@ -80,45 +93,75 @@ function BuyerDashboard() {
             )}
           </div>
 
-          {/* SERVICE REGIONS SUMMARY CARD */}
-          <div className="service-regions-summary-card">
-            <div className="summary-card-header">
-              <div>
-                <h3 className="summary-card-title">Service Regions</h3>
-                <span className="summary-count-badge">
-                  {loadingRegions ? '...' : `${regions.length} ${regions.length === 1 ? 'Area' : 'Areas'}`}
-                </span>
+          {/* BUYER DASHBOARD SUMMARY CARDS GRID */}
+          <div className="buyer-dashboard-grid">
+            {/* 1. Available Scrap Marketplace Card */}
+            <div className="buyer-summary-card highlight-card">
+              <div className="summary-card-header">
+                <div>
+                  <h3 className="summary-card-title">Available Scrap Marketplace</h3>
+                  <p className="summary-card-sub">Browse items listed by local scrap sellers</p>
+                </div>
               </div>
-              <button className="btn-primary btn-sm" onClick={() => navigate('/buyer/service-regions')}>
-                Manage Regions
-              </button>
-            </div>
-
-            {loadingRegions ? (
-              <div className="summary-loading">Loading service regions...</div>
-            ) : regions.length > 0 ? (
-              <ul className="summary-regions-list">
-                {regions.map((reg) => (
-                  <li key={reg._id} className="summary-region-item">
-                    <span className="bullet-dot">🟢</span>
-                    <strong>{reg.area ? `${reg.area}, ` : ''}{reg.city}</strong>
-                    <span className="summary-region-sub">({reg.district}, {reg.state})</span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <div className="summary-empty">
-                You haven't specified any scrap collection service regions yet.
-                <br />
-                <button className="btn-link-sm" onClick={() => navigate('/buyer/service-regions')}>
-                  + Add Service Regions
+              <div className="summary-card-body">
+                <div className="summary-stat-large">
+                  {availableCount !== null ? `${availableCount} Listings` : 'Explore Listings'}
+                </div>
+                <button className="btn-primary btn-full" onClick={() => navigate('/buyer/browse')}>
+                  🔍 Browse Scrap
                 </button>
               </div>
-            )}
-          </div>
+            </div>
 
-          <div className="placeholder-notice">
-            📌 <strong>Buyer Dashboard Placeholder</strong> — Service area matching, scrap pickup requests, and buyer bidding will be implemented in subsequent project steps.
+            {/* 2. My Service Regions Card */}
+            <div className="buyer-summary-card">
+              <div className="summary-card-header">
+                <div>
+                  <h3 className="summary-card-title">My Service Regions</h3>
+                  <p className="summary-card-sub">Your operating scrap collection areas</p>
+                </div>
+                <span className="summary-count-badge">
+                  {loadingRegions ? '...' : `${regions.length} ${regions.length === 1 ? 'Region' : 'Regions'}`}
+                </span>
+              </div>
+              <div className="summary-card-body">
+                {regions.length > 0 ? (
+                  <ul className="summary-regions-list">
+                    {regions.slice(0, 4).map((reg) => (
+                      <li key={reg._id} className="summary-region-item">
+                        <span className="bullet-dot">🟢</span>
+                        <strong>{reg.area ? `${reg.area}, ` : ''}{reg.city}</strong>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="summary-empty">No service regions added yet.</div>
+                )}
+                <button
+                  className="btn-secondary btn-full"
+                  onClick={() => navigate('/buyer/service-regions')}
+                  style={{ marginTop: '1rem' }}
+                >
+                  Manage Service Regions
+                </button>
+              </div>
+            </div>
+
+            {/* 3. Notifications Preview Card */}
+            <div className="buyer-summary-card">
+              <div className="summary-card-header">
+                <div>
+                  <h3 className="summary-card-title">Notifications</h3>
+                  <p className="summary-card-sub">Automated alerts & matching</p>
+                </div>
+                <span className="status-badge sold">COMING SOON</span>
+              </div>
+              <div className="summary-card-body">
+                <div className="summary-empty" style={{ padding: '1rem 0' }}>
+                  🔔 Real-time notifications for matching scrap listings in your service regions will be coming soon.
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </main>

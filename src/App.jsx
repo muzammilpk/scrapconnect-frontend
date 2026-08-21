@@ -10,6 +10,8 @@ import AddScrapPage from './pages/AddScrapPage';
 import MyScrapListingsPage from './pages/MyScrapListingsPage';
 import ScrapDetailPage from './pages/ScrapDetailPage';
 import EditScrapPage from './pages/EditScrapPage';
+import BrowseScrapPage from './pages/BrowseScrapPage';
+import BuyerScrapDetailPage from './pages/BuyerScrapDetailPage';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function HomeRedirect() {
@@ -53,6 +55,24 @@ function App() {
             element={
               <ProtectedRoute allowedRole="buyer">
                 <ServiceRegionsPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/buyer/browse"
+            element={
+              <ProtectedRoute allowedRole="buyer">
+                <BrowseScrapPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/buyer/scraps/:id"
+            element={
+              <ProtectedRoute allowedRole="buyer">
+                <BuyerScrapDetailPage />
               </ProtectedRoute>
             }
           />
