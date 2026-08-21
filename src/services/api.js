@@ -172,6 +172,37 @@ export const api = {
       method: 'GET',
     });
   },
+
+  // Notifications API (Step 10)
+  getNotifications: async (page = 1, limit = 15) => {
+    return await request(`/notifications?page=${page}&limit=${limit}`, {
+      method: 'GET',
+    });
+  },
+
+  getUnreadNotificationCount: async () => {
+    return await request('/notifications/unread-count', {
+      method: 'GET',
+    });
+  },
+
+  markNotificationAsRead: async (id) => {
+    return await request(`/notifications/${id}/read`, {
+      method: 'PATCH',
+    });
+  },
+
+  markAllNotificationsAsRead: async () => {
+    return await request('/notifications/read-all', {
+      method: 'PATCH',
+    });
+  },
+
+  deleteNotification: async (id) => {
+    return await request(`/notifications/${id}`, {
+      method: 'DELETE',
+    });
+  },
 };
 
 export default api;

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import NotificationBell from '../components/NotificationBell';
 import api from '../services/api';
 
 function BuyerDashboard() {
@@ -10,14 +11,16 @@ function BuyerDashboard() {
   const [regions, setRegions] = useState(user?.serviceRegions || []);
   const [loadingRegions, setLoadingRegions] = useState(false);
   const [availableCount, setAvailableCount] = useState(null);
+  const [unreadNotifCount, setUnreadNotifCount] = useState(0);
 
   useEffect(() => {
     const loadData = async () => {
       setLoadingRegions(true);
       try {
-        const [regionsRes, scrapsRes] = await Promise.all([
+        const [regionsRes, scrapsRes, notifRes] = await Promise.all([
           api.getServiceRegions(),
           api.getMarketplaceScraps({ limit: 1 }),
+          api.getUnreadNotificationCount(),
         ]);
 
         if (regionsRes.success) {
@@ -25,6 +28,9 @@ function BuyerDashboard() {
         }
         if (scrapsRes.success) {
           setAvailableCount(scrapsRes.totalListings || 0);
+        }
+        if (notifRes.success) {
+          setUnreadNotifCount(notifRes.unreadCount || 0);
         }
       } catch (err) {
         console.error('Failed to load dashboard data:', err.message);
@@ -54,6 +60,7 @@ function BuyerDashboard() {
           <button className="btn-secondary nav-link-btn" onClick={() => navigate('/buyer/service-regions')}>
             📍 My Service Regions
           </button>
+          <NotificationBell />
           <button className="btn-secondary nav-link-btn" onClick={() => navigate('/profile')}>
             👤 Profile
           </button>
@@ -147,19 +154,28 @@ function BuyerDashboard() {
               </div>
             </div>
 
-            {/* 3. Notifications Preview Card */}
+            {/* 3. Notifications Summary Card */}
             <div className="buyer-summary-card">
               <div className="summary-card-header">
                 <div>
-                  <h3 className="summary-card-title">Notifications</h3>
-                  <p className="summary-card-sub">Automated alerts & matching</p>
+                  <h3 className="summary-card-title">Scrap Alerts</h3>
+                  <p className="summary-card-sub">Nearby matching scrap listings</p>
                 </div>
-                <span className="status-badge sold">COMING SOON</span>
+                {unreadNotifCount > 0 && <span className="status-badge available">{unreadNotifCount} UNREAD</span>}
               </div>
               <div className="summary-card-body">
-                <div className="summary-empty" style={{ padding: '1rem 0' }}>
-                  🔔 Real-time notifications for matching scrap listings in your service regions will be coming soon.
+                <div className="summary-stat-large" style={{ fontSize: '1.25rem' }}>
+                  {unreadNotifCount > 0
+                    ? `🔔 ${unreadNotifCount} new alert${unreadNotifCount > 1 ? 's' : ''}`
+                    : '🔔 No unread alerts'}
                 </div>
+                <button
+                  className="btn-secondary btn-full"
+                  onClick={() => navigate('/notifications')}
+                  style={{ marginTop: '1rem' }}
+                >
+                  View Notifications
+                </button>
               </div>
             </div>
           </div>

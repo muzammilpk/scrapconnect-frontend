@@ -12,6 +12,7 @@ import ScrapDetailPage from './pages/ScrapDetailPage';
 import EditScrapPage from './pages/EditScrapPage';
 import BrowseScrapPage from './pages/BrowseScrapPage';
 import BuyerScrapDetailPage from './pages/BuyerScrapDetailPage';
+import NotificationsPage from './pages/NotificationsPage';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function HomeRedirect() {
@@ -127,6 +128,15 @@ function App() {
             element={
               <ProtectedRoute>
                 <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/notifications"
+            element={
+              <ProtectedRoute>
+                <NotificationsPage />
               </ProtectedRoute>
             }
           />
