@@ -13,6 +13,8 @@ import EditScrapPage from './pages/EditScrapPage';
 import BrowseScrapPage from './pages/BrowseScrapPage';
 import BuyerScrapDetailPage from './pages/BuyerScrapDetailPage';
 import NotificationsPage from './pages/NotificationsPage';
+import ConversationsPage from './pages/ConversationsPage';
+import ChatPage from './pages/ChatPage';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function HomeRedirect() {
@@ -137,6 +139,24 @@ function App() {
             element={
               <ProtectedRoute>
                 <NotificationsPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/conversations"
+            element={
+              <ProtectedRoute>
+                <ConversationsPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/chat/:id"
+            element={
+              <ProtectedRoute>
+                <ChatPage />
               </ProtectedRoute>
             }
           />

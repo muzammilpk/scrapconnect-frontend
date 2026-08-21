@@ -203,6 +203,45 @@ export const api = {
       method: 'DELETE',
     });
   },
+
+  // Real-Time Chat API (Step 11)
+  createOrGetConversation: async (scrapId) => {
+    return await request('/chat/conversations', {
+      method: 'POST',
+      body: JSON.stringify({ scrapId }),
+    });
+  },
+
+  getConversations: async () => {
+    return await request('/chat/conversations', {
+      method: 'GET',
+    });
+  },
+
+  getConversationById: async (id) => {
+    return await request(`/chat/conversations/${id}`, {
+      method: 'GET',
+    });
+  },
+
+  getMessages: async (conversationId) => {
+    return await request(`/chat/conversations/${conversationId}/messages`, {
+      method: 'GET',
+    });
+  },
+
+  sendMessage: async (conversationId, text) => {
+    return await request(`/chat/conversations/${conversationId}/messages`, {
+      method: 'POST',
+      body: JSON.stringify({ text }),
+    });
+  },
+
+  markConversationRead: async (conversationId) => {
+    return await request(`/chat/conversations/${conversationId}/read`, {
+      method: 'PATCH',
+    });
+  },
 };
 
 export default api;

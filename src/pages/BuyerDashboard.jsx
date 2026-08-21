@@ -60,6 +60,9 @@ function BuyerDashboard() {
           <button className="btn-secondary nav-link-btn" onClick={() => navigate('/buyer/service-regions')}>
             📍 My Service Regions
           </button>
+          <button className="btn-secondary nav-link-btn" onClick={() => navigate('/conversations')}>
+            💬 Messages
+          </button>
           <NotificationBell />
           <button className="btn-secondary nav-link-btn" onClick={() => navigate('/profile')}>
             👤 Profile

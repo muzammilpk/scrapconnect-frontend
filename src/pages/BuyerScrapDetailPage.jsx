@@ -33,10 +33,22 @@ function BuyerScrapDetailPage() {
     fetchScrapDetail();
   }, [id]);
 
-  const handleContactClick = () => {
-    setContactNotice(
-      `💬 Direct buyer-seller chat & contact request feature will be enabled in a subsequent project step.`
-    );
+  const [startingChat, setStartingChat] = useState(false);
+
+  const handleContactClick = async () => {
+    if (!scrap || startingChat) return;
+    setStartingChat(true);
+    setErrorMsg('');
+    try {
+      const res = await api.createOrGetConversation(scrap._id);
+      if (res.success && res.conversation) {
+        navigate(`/chat/${res.conversation._id}`);
+      }
+    } catch (err) {
+      setErrorMsg(err.message || 'Failed to start chat conversation with seller');
+    } finally {
+      setStartingChat(false);
+    }
   };
 
   const formatDate = (dateString) => {
@@ -190,10 +202,14 @@ function BuyerScrapDetailPage() {
                   <span>Posted on {formatDate(scrap.createdAt)}</span>
                 </div>
 
-                {/* Placeholder Contact Seller Action Button */}
+                {/* Contact Seller Action Button */}
                 <div className="contact-seller-action-row">
-                  <button className="btn-primary btn-lg btn-full" onClick={handleContactClick}>
-                    💬 Contact Seller
+                  <button
+                    className="btn-primary btn-lg btn-full"
+                    onClick={handleContactClick}
+                    disabled={startingChat}
+                  >
+                    {startingChat ? 'Starting Chat...' : '💬 Contact Seller'}
                   </button>
                 </div>
               </div>

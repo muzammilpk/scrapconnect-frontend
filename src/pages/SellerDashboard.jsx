@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import NotificationBell from '../components/NotificationBell';
 import api from '../services/api';
 
 function SellerDashboard() {
@@ -51,6 +52,10 @@ function SellerDashboard() {
           <button className="btn-secondary nav-link-btn" onClick={() => navigate('/seller/add-scrap')}>
             ➕ Add Scrap
           </button>
+          <button className="btn-secondary nav-link-btn" onClick={() => navigate('/conversations')}>
+            💬 Messages
+          </button>
+          <NotificationBell />
           <button className="btn-secondary nav-link-btn" onClick={() => navigate('/profile')}>
             👤 Profile
           </button>
