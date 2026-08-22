@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getSocket } from '../services/socketService';
+import OfferCard from '../components/OfferCard';
+import MakeOfferModal from '../components/MakeOfferModal';
 import api from '../services/api';
 
 function ChatPage() {
@@ -16,6 +18,15 @@ function ChatPage() {
   const [sending, setSending] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
+  // Offer Negotiation States
+  const [offers, setOffers] = useState([]);
+  const [activeOffer, setActiveOffer] = useState(null);
+  const [acceptedOffer, setAcceptedOffer] = useState(null);
+  const [showOfferModal, setShowOfferModal] = useState(false);
+  const [counterParentOffer, setCounterParentOffer] = useState(null);
+  const [submittingOffer, setSubmittingOffer] = useState(false);
+  const [showOfferHistory, setShowOfferHistory] = useState(false);
+
   // Typing indicator state
   const [isOtherTyping, setIsOtherTyping] = useState(false);
   const typingTimeoutRef = useRef(null);
@@ -27,7 +38,20 @@ function ChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // 1. Initial Load: Fetch Conversation & Messages
+  const fetchOffers = async () => {
+    try {
+      const res = await api.getConversationOffers(conversationId);
+      if (res.success) {
+        setOffers(res.offers || []);
+        setActiveOffer(res.pendingOffer || null);
+        setAcceptedOffer(res.acceptedOffer || null);
+      }
+    } catch (err) {
+      console.error('Failed to load offer history:', err.message);
+    }
+  };
+
+  // 1. Initial Load: Fetch Conversation, Messages & Offers
   useEffect(() => {
     const loadChat = async () => {
       setLoading(true);
@@ -44,6 +68,9 @@ function ChatPage() {
         if (msgRes.success) {
           setMessages(msgRes.messages || []);
         }
+
+        // Fetch offer history
+        await fetchOffers();
 
         // Mark unread messages as read
         await api.markConversationRead(conversationId);
@@ -118,10 +145,18 @@ function ChatPage() {
       }
     };
 
+    // Listener: Real-Time Offer Updates
+    const handleOfferUpdated = (data) => {
+      if (data.conversationId === conversationId) {
+        fetchOffers();
+      }
+    };
+
     socket.on('new_message', handleNewMessage);
     socket.on('user_typing', handleUserTyping);
     socket.on('user_stop_typing', handleUserStopTyping);
     socket.on('messages_read', handleMessagesRead);
+    socket.on('offer_updated', handleOfferUpdated);
 
     return () => {
       socket.emit('leave_conversation', { conversationId });
@@ -129,8 +164,119 @@ function ChatPage() {
       socket.off('user_typing', handleUserTyping);
       socket.off('user_stop_typing', handleUserStopTyping);
       socket.off('messages_read', handleMessagesRead);
+      socket.off('offer_updated', handleOfferUpdated);
     };
   }, [conversationId, user]);
+
+  // OFFER ACTION HANDLERS
+  const handleOfferModalSubmit = async (numAmount) => {
+    setSubmittingOffer(true);
+    setErrorMsg('');
+    const socket = getSocket();
+
+    try {
+      let res;
+      if (counterParentOffer) {
+        res = await api.counterOffer(counterParentOffer._id, numAmount);
+      } else {
+        res = await api.createOffer(conversationId, numAmount);
+      }
+
+      if (res.success && res.offer) {
+        setShowOfferModal(false);
+        setCounterParentOffer(null);
+        await fetchOffers();
+
+        // Emit real-time socket event to other participant
+        socket.emit('notify_offer_update', {
+          conversationId,
+          offer: res.offer,
+          eventType: counterParentOffer ? 'countered' : 'created',
+        });
+      }
+    } catch (err) {
+      setErrorMsg(err.message || 'Failed to submit offer.');
+    } finally {
+      setSubmittingOffer(false);
+    }
+  };
+
+  const handleAcceptOffer = async (offerId) => {
+    setSubmittingOffer(true);
+    setErrorMsg('');
+    const socket = getSocket();
+
+    try {
+      const res = await api.acceptOffer(offerId);
+      if (res.success && res.offer) {
+        await fetchOffers();
+        if (res.scrap) {
+          setConversation((prev) => (prev ? { ...prev, scrap: res.scrap } : prev));
+        }
+
+        socket.emit('notify_offer_update', {
+          conversationId,
+          offer: res.offer,
+          eventType: 'accepted',
+        });
+      }
+    } catch (err) {
+      setErrorMsg(err.message || 'Failed to accept offer.');
+    } finally {
+      setSubmittingOffer(false);
+    }
+  };
+
+  const handleRejectOffer = async (offerId) => {
+    setSubmittingOffer(true);
+    setErrorMsg('');
+    const socket = getSocket();
+
+    try {
+      const res = await api.rejectOffer(offerId);
+      if (res.success && res.offer) {
+        await fetchOffers();
+
+        socket.emit('notify_offer_update', {
+          conversationId,
+          offer: res.offer,
+          eventType: 'rejected',
+        });
+      }
+    } catch (err) {
+      setErrorMsg(err.message || 'Failed to reject offer.');
+    } finally {
+      setSubmittingOffer(false);
+    }
+  };
+
+  const handleCancelOffer = async (offerId) => {
+    setSubmittingOffer(true);
+    setErrorMsg('');
+    const socket = getSocket();
+
+    try {
+      const res = await api.cancelOffer(offerId);
+      if (res.success && res.offer) {
+        await fetchOffers();
+
+        socket.emit('notify_offer_update', {
+          conversationId,
+          offer: res.offer,
+          eventType: 'cancelled',
+        });
+      }
+    } catch (err) {
+      setErrorMsg(err.message || 'Failed to cancel offer.');
+    } finally {
+      setSubmittingOffer(false);
+    }
+  };
+
+  const handleOpenCounterModal = (parentOff) => {
+    setCounterParentOffer(parentOff);
+    setShowOfferModal(true);
+  };
 
   // Handle Input Change & Typing Indicator Emission
   const handleInputChange = (e) => {
@@ -254,6 +400,103 @@ function ChatPage() {
               )}
             </div>
 
+            {/* Negotiation / Offer Banner & Active Card */}
+            <div className="chat-negotiation-section">
+              {acceptedOffer || scrap.status === 'reserved' ? (
+                <div className="offer-banner offer-banner-accepted">
+                  <div className="offer-banner-info">
+                    <span className="offer-banner-icon">🎉</span>
+                    <div>
+                      <h4 className="offer-banner-title">Deal Agreed! (Scrap Reserved)</h4>
+                      <p className="offer-banner-sub">
+                        Agreed Price: <strong>₹{acceptedOffer?.amount || scrap.finalPrice}</strong>
+                      </p>
+                    </div>
+                  </div>
+                  {offers.length > 0 && (
+                    <button
+                      className="btn-outline-sm"
+                      onClick={() => setShowOfferHistory(!showOfferHistory)}
+                    >
+                      {showOfferHistory ? 'Hide History' : `History (${offers.length})`}
+                    </button>
+                  )}
+                </div>
+              ) : activeOffer ? (
+                <div className="active-offer-container">
+                  <div className="active-offer-header">
+                    <span className="offer-section-label">⚡ Active Negotiation Offer</span>
+                    {offers.length > 0 && (
+                      <button
+                        className="btn-link-sm"
+                        onClick={() => setShowOfferHistory(!showOfferHistory)}
+                      >
+                        {showOfferHistory ? 'Hide History' : `History (${offers.length})`}
+                      </button>
+                    )}
+                  </div>
+                  <OfferCard
+                    offer={activeOffer}
+                    currentUserId={user?._id}
+                    onAccept={handleAcceptOffer}
+                    onReject={handleRejectOffer}
+                    onCounter={handleOpenCounterModal}
+                    onCancel={handleCancelOffer}
+                    submitting={submittingOffer}
+                  />
+                </div>
+              ) : (
+                <div className="no-offer-banner">
+                  <div className="no-offer-text">
+                    <span>💰</span>
+                    <span>Negotiate price with structured offers</span>
+                  </div>
+                  <div className="no-offer-actions">
+                    <button
+                      className="btn-primary btn-sm"
+                      onClick={() => {
+                        setCounterParentOffer(null);
+                        setShowOfferModal(true);
+                      }}
+                    >
+                      Make an Offer
+                    </button>
+                    {offers.length > 0 && (
+                      <button
+                        className="btn-secondary btn-sm"
+                        onClick={() => setShowOfferHistory(!showOfferHistory)}
+                      >
+                        {showOfferHistory ? 'Hide History' : `History (${offers.length})`}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* History Drawer / Accordion */}
+              {showOfferHistory && (
+                <div className="offer-history-drawer">
+                  <h4 className="history-drawer-title">📜 Negotiation History</h4>
+                  <div className="history-list">
+                    {offers.map((off) => (
+                      <div key={off._id} className={`history-item history-item-${off.status}`}>
+                        <div className="history-item-main">
+                          <span className="history-amount">₹{off.amount}</span>
+                          <span className={`status-badge status-${off.status}`}>{off.status.toUpperCase()}</span>
+                        </div>
+                        <div className="history-item-sub">
+                          <span>
+                            By: {off.offeredBy?._id === user?._id ? 'You' : off.offeredBy?.name || 'Other party'}
+                          </span>
+                          <span>{formatMsgTime(off.createdAt)}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Messages Body */}
             <div className="chat-messages-body">
               {messages.length === 0 ? (
@@ -313,6 +556,19 @@ function ChatPage() {
             </form>
           </div>
         )}
+
+        {/* Offer Creation / Counter Modal */}
+        <MakeOfferModal
+          isOpen={showOfferModal}
+          onClose={() => {
+            setShowOfferModal(false);
+            setCounterParentOffer(null);
+          }}
+          onSubmit={handleOfferModalSubmit}
+          counterParentOffer={counterParentOffer}
+          scrap={scrap}
+          submitting={submittingOffer}
+        />
       </main>
     </div>
   );

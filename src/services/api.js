@@ -242,6 +242,45 @@ export const api = {
       method: 'PATCH',
     });
   },
+
+  // Price Offer & Negotiation API (Step 12)
+  createOffer: async (conversationId, amount) => {
+    return await request('/offers', {
+      method: 'POST',
+      body: JSON.stringify({ conversationId, amount }),
+    });
+  },
+
+  counterOffer: async (offerId, amount) => {
+    return await request(`/offers/${offerId}/counter`, {
+      method: 'POST',
+      body: JSON.stringify({ amount }),
+    });
+  },
+
+  acceptOffer: async (offerId) => {
+    return await request(`/offers/${offerId}/accept`, {
+      method: 'POST',
+    });
+  },
+
+  rejectOffer: async (offerId) => {
+    return await request(`/offers/${offerId}/reject`, {
+      method: 'POST',
+    });
+  },
+
+  cancelOffer: async (offerId) => {
+    return await request(`/offers/${offerId}/cancel`, {
+      method: 'POST',
+    });
+  },
+
+  getConversationOffers: async (conversationId) => {
+    return await request(`/offers/conversation/${conversationId}`, {
+      method: 'GET',
+    });
+  },
 };
 
 export default api;
