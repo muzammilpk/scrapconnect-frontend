@@ -413,14 +413,22 @@ function ChatPage() {
                       </p>
                     </div>
                   </div>
-                  {offers.length > 0 && (
+                  <div className="no-offer-actions">
                     <button
-                      className="btn-outline-sm"
-                      onClick={() => setShowOfferHistory(!showOfferHistory)}
+                      className="btn-primary btn-sm"
+                      onClick={() => navigate('/deals')}
                     >
-                      {showOfferHistory ? 'Hide History' : `History (${offers.length})`}
+                      🤝 View Deal Details
                     </button>
-                  )}
+                    {offers.length > 0 && (
+                      <button
+                        className="btn-outline-sm"
+                        onClick={() => setShowOfferHistory(!showOfferHistory)}
+                      >
+                        {showOfferHistory ? 'Hide History' : `History (${offers.length})`}
+                      </button>
+                    )}
+                  </div>
                 </div>
               ) : activeOffer ? (
                 <div className="active-offer-container">

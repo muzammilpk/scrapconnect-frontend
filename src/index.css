@@ -2907,6 +2907,443 @@ a:hover {
   background-color: var(--color-bg);
 }
 
+/* ==========================================================================
+   DEAL & TRANSACTION MANAGEMENT STYLES
+   ========================================================================== */
+
+.deals-page-header {
+  margin-bottom: 1.5rem;
+}
+
+.deal-tabs-bar {
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 2px solid var(--color-border);
+  margin-bottom: 1.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+}
+
+.deal-tab {
+  background: none;
+  border: none;
+  padding: 0.65rem 1.25rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-muted-text);
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.deal-tab:hover {
+  color: var(--color-primary);
+}
+
+.deal-tab.active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+.deals-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.5rem;
+}
+
+.deal-card {
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem 1.5rem;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  transition: all 0.2s ease;
+}
+
+.deal-card:hover {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-md);
+}
+
+.deal-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.deal-scrap-title {
+  font-family: var(--heading-font);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--color-dark-green);
+  margin-bottom: 0.15rem;
+}
+
+.deal-scrap-meta {
+  font-size: 0.82rem;
+  color: var(--color-muted-text);
+}
+
+.deal-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  background-color: var(--color-bg);
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius-md);
+}
+
+.deal-price-box {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px dashed var(--color-border);
+  padding-bottom: 0.5rem;
+}
+
+.deal-price-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-muted-text);
+  text-transform: uppercase;
+}
+
+.deal-price-value {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--color-primary);
+  font-family: var(--heading-font);
+}
+
+.deal-party-info {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  font-size: 0.88rem;
+  flex-wrap: wrap;
+}
+
+.party-role {
+  font-weight: 700;
+  color: var(--color-muted-text);
+}
+
+.party-name {
+  font-weight: 700;
+  color: var(--color-main-text);
+}
+
+.party-phone {
+  font-size: 0.8rem;
+  color: var(--color-primary);
+  background: var(--color-light-green);
+  padding: 0.15rem 0.45rem;
+  border-radius: var(--radius-sm);
+}
+
+.deal-location-text {
+  font-size: 0.82rem;
+  color: var(--color-muted-text);
+}
+
+.deal-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid var(--color-border);
+  padding-top: 0.75rem;
+}
+
+.deal-date-sub {
+  font-size: 0.78rem;
+  color: var(--color-muted-text);
+}
+
+/* Deal Details Layout & Visual Timeline */
+.deal-details-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.timeline-card {
+  padding: 1.5rem;
+}
+
+.timeline-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 1.25rem;
+  position: relative;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+
+.timeline-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  z-index: 2;
+  min-width: 110px;
+}
+
+.step-circle {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background-color: var(--color-bg);
+  border: 2.5px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 1.1rem;
+  color: var(--color-muted-text);
+  transition: all 0.25 ease;
+  margin-bottom: 0.5rem;
+}
+
+.step-completed .step-circle {
+  background-color: #16A34A;
+  border-color: #16A34A;
+  color: #FFFFFF;
+  box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.2);
+}
+
+.step-pending .step-circle {
+  border-color: var(--color-border);
+  color: var(--color-muted-text);
+}
+
+.step-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-main-text);
+  margin-bottom: 0.15rem;
+}
+
+.step-date {
+  font-size: 0.75rem;
+  color: var(--color-muted-text);
+}
+
+.timeline-line {
+  flex: 1;
+  height: 4px;
+  background-color: var(--color-border);
+  margin: 0 -10px;
+  margin-top: -1.75rem;
+  z-index: 1;
+}
+
+.line-completed {
+  background-color: #16A34A;
+}
+
+.cancelled-banner {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background-color: #FEF2F2;
+  border: 1px solid #FCA5A5;
+  border-radius: var(--radius-md);
+  padding: 1rem 1.25rem;
+  margin-top: 1rem;
+}
+
+.cancelled-icon {
+  font-size: 2rem;
+}
+
+.cancelled-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #DC2626;
+}
+
+.cancelled-sub {
+  font-size: 0.88rem;
+  color: #991B1B;
+}
+
+/* Deal Main Info Grid */
+.deal-info-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 1.5rem;
+}
+
+@media (max-width: 868px) {
+  .deal-info-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.deal-scrap-header-box {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.deal-scrap-main-title {
+  font-family: var(--heading-font);
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--color-dark-green);
+  margin-bottom: 0.35rem;
+}
+
+.deal-scrap-sub {
+  font-size: 0.9rem;
+  color: var(--color-muted-text);
+  margin-bottom: 0.5rem;
+}
+
+.deal-scrap-desc {
+  font-size: 0.88rem;
+  font-style: italic;
+  color: var(--color-main-text);
+  background-color: var(--color-bg);
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-sm);
+}
+
+.deal-agreed-price-tag {
+  background: var(--color-light-green);
+  border: 1px solid rgba(22, 163, 74, 0.3);
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.price-tag-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--color-dark-green);
+  display: block;
+}
+
+.price-tag-value {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--color-primary);
+  font-family: var(--heading-font);
+}
+
+.deal-location-box {
+  background-color: var(--color-bg);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1rem;
+  font-size: 0.88rem;
+  color: var(--color-main-text);
+}
+
+.party-details-box {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background-color: var(--color-bg);
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  margin-bottom: 1.25rem;
+}
+
+.party-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background-color: var(--color-primary);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.party-name-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-main-text);
+}
+
+.party-role-text {
+  font-size: 0.82rem;
+  color: var(--color-muted-text);
+  font-weight: 600;
+}
+
+.party-phone-text, .party-email-text {
+  font-size: 0.85rem;
+  color: var(--color-main-text);
+  margin-top: 0.15rem;
+}
+
+.deal-actions-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+/* Pickup Section */
+.pickup-details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  background-color: var(--color-bg);
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius-md);
+}
+
+.pickup-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.pickup-info-item.full-width {
+  grid-column: 1 / -1;
+}
+
+.pickup-info-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--color-muted-text);
+}
+
+.pickup-info-val {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-main-text);
+}
+
+.no-pickup-box {
+  background-color: var(--color-bg);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+  text-align: center;
+  color: var(--color-muted-text);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+
 
 
 

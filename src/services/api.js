@@ -281,6 +281,41 @@ export const api = {
       method: 'GET',
     });
   },
+
+  // Deal / Transaction Management API (Step 13)
+  createDeal: async (acceptedOfferId, pickupDetails = {}, notes = '') => {
+    return await request('/deals', {
+      method: 'POST',
+      body: JSON.stringify({ acceptedOfferId, pickupDetails, notes }),
+    });
+  },
+
+  getUserDeals: async (status = '') => {
+    const query = status ? `?status=${status}` : '';
+    return await request(`/deals${query}`, {
+      method: 'GET',
+    });
+  },
+
+  getDealById: async (id) => {
+    return await request(`/deals/${id}`, {
+      method: 'GET',
+    });
+  },
+
+  updateDealStatus: async (id, status, cancellationReason = '') => {
+    return await request(`/deals/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status, cancellationReason }),
+    });
+  },
+
+  updateDealPickup: async (id, pickupData) => {
+    return await request(`/deals/${id}/pickup`, {
+      method: 'PATCH',
+      body: JSON.stringify(pickupData),
+    });
+  },
 };
 
 export default api;

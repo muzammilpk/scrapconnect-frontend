@@ -55,6 +55,9 @@ function SellerDashboard() {
           <button className="btn-secondary nav-link-btn" onClick={() => navigate('/conversations')}>
             💬 Messages
           </button>
+          <button className="btn-secondary nav-link-btn" onClick={() => navigate('/deals')}>
+            🤝 My Deals
+          </button>
           <NotificationBell />
           <button className="btn-secondary nav-link-btn" onClick={() => navigate('/profile')}>
             👤 Profile

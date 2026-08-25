@@ -15,6 +15,8 @@ import BuyerScrapDetailPage from './pages/BuyerScrapDetailPage';
 import NotificationsPage from './pages/NotificationsPage';
 import ConversationsPage from './pages/ConversationsPage';
 import ChatPage from './pages/ChatPage';
+import MyDealsPage from './pages/MyDealsPage';
+import DealDetailsPage from './pages/DealDetailsPage';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function HomeRedirect() {
@@ -157,6 +159,24 @@ function App() {
             element={
               <ProtectedRoute>
                 <ChatPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/deals"
+            element={
+              <ProtectedRoute>
+                <MyDealsPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/deals/:id"
+            element={
+              <ProtectedRoute>
+                <DealDetailsPage />
               </ProtectedRoute>
             }
           />
