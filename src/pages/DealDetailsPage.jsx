@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getSocket } from '../services/socketService';
 import PickupModal from '../components/PickupModal';
+import ReviewForm from '../components/ReviewForm';
+import StarRating from '../components/StarRating';
 import api from '../services/api';
 
 function DealDetailsPage() {
@@ -17,7 +19,13 @@ function DealDetailsPage() {
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
+  // Pickup Modal state
   const [showPickupModal, setShowPickupModal] = useState(false);
+
+  // Review states
+  const [userReview, setUserReview] = useState(null);
+  const [isEditingReview, setIsEditingReview] = useState(false);
+  const [submittingReview, setSubmittingReview] = useState(false);
 
   const fetchDealDetails = async () => {
     setLoading(true);
@@ -29,6 +37,20 @@ function DealDetailsPage() {
         if (res.conversationId) {
           setConversationId(res.conversationId);
         }
+
+        // If deal is completed, fetch user reviews to check if already reviewed
+        if (res.deal.status === 'completed') {
+          const counterpartId = (res.deal.buyer?._id || res.deal.buyer) === user._id ? (res.deal.seller?._id || res.deal.seller) : (res.deal.buyer?._id || res.deal.buyer);
+          const reviewsRes = await api.getUserReviews(counterpartId);
+          if (reviewsRes.success && reviewsRes.reviews) {
+            const foundMyReview = reviewsRes.reviews.find(
+              (r) => (r.deal?._id || r.deal) === res.deal._id && (r.reviewer?._id || r.reviewer) === user._id
+            );
+            if (foundMyReview) {
+              setUserReview(foundMyReview);
+            }
+          }
+        }
       }
     } catch (err) {
       setErrorMsg(err.message || 'Failed to load deal details');
@@ -38,10 +60,10 @@ function DealDetailsPage() {
   };
 
   useEffect(() => {
-    if (dealId) {
+    if (dealId && user) {
       fetchDealDetails();
     }
-  }, [dealId]);
+  }, [dealId, user]);
 
   // Real-Time Socket Listener for Deal Updates
   useEffect(() => {
@@ -95,6 +117,7 @@ function DealDetailsPage() {
         setSuccessMsg('🎉 Deal completed successfully! Scrap is marked as SOLD.');
         const socket = getSocket();
         socket.emit('notify_deal_update', { conversationId, deal: res.deal, eventType: 'completed' });
+        await fetchDealDetails();
       }
     } catch (err) {
       setErrorMsg(err.message || 'Failed to complete deal');
@@ -105,7 +128,7 @@ function DealDetailsPage() {
 
   const handleCancelDeal = async () => {
     const reason = window.prompt('Please provide a reason for cancelling this deal:');
-    if (reason === null) return; // User cancelled prompt
+    if (reason === null) return;
 
     setSubmitting(true);
     setErrorMsg('');
@@ -142,6 +165,55 @@ function DealDetailsPage() {
       setErrorMsg(err.message || 'Failed to update pickup details');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  // Review Handlers
+  const handleReviewSubmit = async ({ rating, comment }) => {
+    setSubmittingReview(true);
+    setErrorMsg('');
+    setSuccessMsg('');
+    try {
+      if (userReview) {
+        // Edit existing review
+        const res = await api.updateReview(userReview._id, rating, comment);
+        if (res.success) {
+          setUserReview(res.review);
+          setIsEditingReview(false);
+          setSuccessMsg('✓ Review updated successfully!');
+        }
+      } else {
+        // Create new review
+        const res = await api.createReview(dealId, rating, comment);
+        if (res.success) {
+          setUserReview(res.review);
+          setSuccessMsg('✓ Review submitted successfully! Thank you for rating.');
+        }
+      }
+    } catch (err) {
+      setErrorMsg(err.message || 'Failed to submit review');
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
+  const handleDeleteReview = async () => {
+    if (!userReview || !window.confirm('Are you sure you want to delete your review?')) return;
+
+    setSubmittingReview(true);
+    setErrorMsg('');
+    setSuccessMsg('');
+    try {
+      const res = await api.deleteReview(userReview._id);
+      if (res.success) {
+        setUserReview(null);
+        setIsEditingReview(false);
+        setSuccessMsg('Review deleted.');
+      }
+    } catch (err) {
+      setErrorMsg(err.message || 'Failed to delete review');
+    } finally {
+      setSubmittingReview(false);
     }
   };
 
@@ -258,6 +330,47 @@ function DealDetailsPage() {
                 </div>
               )}
             </div>
+
+            {/* Rating and Review Section (Only on Completed Deals) */}
+            {isCompleted && (
+              <div className="deal-card review-section-card">
+                <h3 className="section-title">⭐ Deal Experience & Review</h3>
+
+                {userReview && !isEditingReview ? (
+                  <div className="user-submitted-review-box">
+                    <div className="submitted-review-header">
+                      <div>
+                        <span className="submitted-tag">✓ You reviewed {counterpart.name}</span>
+                        <div className="submitted-stars-row">
+                          <StarRating rating={userReview.rating} readOnly size="md" showNumber />
+                        </div>
+                      </div>
+                      <div className="review-action-btns">
+                        <button className="btn-link-sm" onClick={() => setIsEditingReview(true)}>
+                          ✏️ Edit Review
+                        </button>
+                        <button className="btn-danger-link" onClick={handleDeleteReview} disabled={submittingReview}>
+                          🗑️ Delete
+                        </button>
+                      </div>
+                    </div>
+                    {userReview.comment && (
+                      <p className="submitted-comment-text">"{userReview.comment}"</p>
+                    )}
+                  </div>
+                ) : (
+                  <ReviewForm
+                    initialRating={userReview?.rating || 5}
+                    initialComment={userReview?.comment || ''}
+                    onSubmit={handleReviewSubmit}
+                    onCancel={userReview ? () => setIsEditingReview(false) : null}
+                    submitting={submittingReview}
+                    submitLabel={userReview ? 'Update Review' : 'Submit Review'}
+                    targetUserName={counterpart.name || 'User'}
+                  />
+                )}
+              </div>
+            )}
 
             {/* Deal Main Info Grid */}
             <div className="deal-info-grid">

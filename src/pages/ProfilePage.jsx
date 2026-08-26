@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import StarRating from '../components/StarRating';
+import ReviewList from '../components/ReviewList';
 import api from '../services/api';
 
 function ProfilePage() {
@@ -12,6 +14,14 @@ function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+
+  // Rating & Review state
+  const [ratingSummary, setRatingSummary] = useState({
+    averageRating: 0,
+    totalReviews: 0,
+    distribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
+  });
+  const [receivedReviews, setReceivedReviews] = useState([]);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -26,7 +36,7 @@ function ProfilePage() {
     pincode: '',
   });
 
-  // Populate form data from logged-in user or fetched profile
+  // Populate form data from logged-in user
   useEffect(() => {
     if (user) {
       setFormData({
@@ -43,34 +53,52 @@ function ProfilePage() {
     }
   }, [user]);
 
-  // Fetch latest profile on page load
+  // Fetch latest profile, rating summary, and reviews
   useEffect(() => {
-    const fetchLatestProfile = async () => {
+    const fetchProfileAndReviews = async () => {
+      if (!user?._id) return;
       setLoading(true);
       try {
-        const res = await api.getProfile();
-        if (res.success && res.user) {
+        const [profRes, ratingRes, revRes] = await Promise.all([
+          api.getProfile(),
+          api.getUserRatingSummary(user._id),
+          api.getUserReviews(user._id),
+        ]);
+
+        if (profRes.success && profRes.user) {
           setFormData({
-            name: res.user.name || '',
-            mobileNumber: res.user.mobileNumber || '',
-            profileImage: res.user.profileImage || '',
-            address: res.user.address || '',
-            state: res.user.location?.state || '',
-            district: res.user.location?.district || '',
-            city: res.user.location?.city || '',
-            area: res.user.location?.area || '',
-            pincode: res.user.location?.pincode || '',
+            name: profRes.user.name || '',
+            mobileNumber: profRes.user.mobileNumber || '',
+            profileImage: profRes.user.profileImage || '',
+            address: profRes.user.address || '',
+            state: profRes.user.location?.state || '',
+            district: profRes.user.location?.district || '',
+            city: profRes.user.location?.city || '',
+            area: profRes.user.location?.area || '',
+            pincode: profRes.user.location?.pincode || '',
           });
         }
+
+        if (ratingRes.success) {
+          setRatingSummary({
+            averageRating: ratingRes.averageRating || 0,
+            totalReviews: ratingRes.totalReviews || 0,
+            distribution: ratingRes.distribution || { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
+          });
+        }
+
+        if (revRes.success) {
+          setReceivedReviews(revRes.reviews || []);
+        }
       } catch (err) {
-        console.error('Failed to fetch profile:', err.message);
+        console.error('Failed to fetch profile/reviews:', err.message);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchLatestProfile();
-  }, []);
+    fetchProfileAndReviews();
+  }, [user?._id]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -85,7 +113,6 @@ function ProfilePage() {
     setSuccessMsg('');
     setErrorMsg('');
 
-    // Frontend validations
     if (!formData.name.trim()) {
       setErrorMsg('Name is required');
       return;
@@ -184,6 +211,9 @@ function ProfilePage() {
               </button>
             </>
           )}
+          <button className="btn-secondary nav-link-btn" onClick={() => navigate('/deals')}>
+            🤝 My Deals
+          </button>
           <div className="user-info">
             <div className="user-name">{user?.name}</div>
             <span className={`role-tag ${user?.role}`}>
@@ -235,6 +265,13 @@ function ProfilePage() {
                 {user?.mobileNumber && (
                   <span className="meta-badge mobile">📞 {user.mobileNumber}</span>
                 )}
+                <span className="meta-badge rating-badge">
+                  {ratingSummary.totalReviews > 0 ? (
+                    <>⭐ {ratingSummary.averageRating} / 5 ({ratingSummary.totalReviews} reviews)</>
+                  ) : (
+                    <>⭐ No reviews yet</>
+                  )}
+                </span>
               </div>
             </div>
 
@@ -283,7 +320,7 @@ function ProfilePage() {
                 <div className="info-group">
                   <label className="info-label">Account Role</label>
                   <div className="info-value text-capitalize">
-                    <span className="role-chip">{user?.role}</span> (Non-editable)
+                    <span className="role-chip">{user?.role}</span>
                   </div>
                 </div>
               </div>
@@ -329,6 +366,47 @@ function ProfilePage() {
                     📌 You haven't added your location details yet. Click <strong>Edit Profile</strong> to set your city, area, and pincode.
                   </div>
                 )}
+              </div>
+
+              {/* Reputation & Reviews Summary Section */}
+              <div className="profile-card full-width-card">
+                <h3 className="card-title">⭐ Reputation & Received Reviews</h3>
+
+                {ratingSummary.totalReviews > 0 ? (
+                  <div className="rating-summary-layout">
+                    <div className="rating-score-box">
+                      <div className="avg-rating-num">{ratingSummary.averageRating}</div>
+                      <StarRating rating={ratingSummary.averageRating} readOnly size="lg" />
+                      <div className="total-reviews-sub">Based on {ratingSummary.totalReviews} reviews</div>
+                    </div>
+
+                    <div className="rating-bars-box">
+                      {[5, 4, 3, 2, 1].map((stars) => {
+                        const count = ratingSummary.distribution[stars] || 0;
+                        const pct = ratingSummary.totalReviews > 0 ? (count / ratingSummary.totalReviews) * 100 : 0;
+
+                        return (
+                          <div key={stars} className="dist-row">
+                            <span className="dist-star-label">{stars} ★</span>
+                            <div className="dist-bar-track">
+                              <div className="dist-bar-fill" style={{ width: `${pct}%` }} />
+                            </div>
+                            <span className="dist-count">{count}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="empty-reviews-notice">
+                    ⭐ <strong>No reviews yet.</strong> Reviews will appear here once you complete transactions on ScrapConnect.
+                  </div>
+                )}
+
+                <div className="received-reviews-container">
+                  <h4 className="sub-section-title">Received Feedback</h4>
+                  <ReviewList reviews={receivedReviews} currentUserId={user?._id} />
+                </div>
               </div>
             </div>
           ) : (

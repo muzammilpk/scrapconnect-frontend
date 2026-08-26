@@ -316,6 +316,39 @@ export const api = {
       body: JSON.stringify(pickupData),
     });
   },
+
+  // Ratings & Reviews API (Step 14)
+  createReview: async (dealId, rating, comment = '') => {
+    return await request('/reviews', {
+      method: 'POST',
+      body: JSON.stringify({ dealId, rating, comment }),
+    });
+  },
+
+  getUserReviews: async (userId) => {
+    return await request(`/reviews/user/${userId}`, {
+      method: 'GET',
+    });
+  },
+
+  getUserRatingSummary: async (userId) => {
+    return await request(`/reviews/user/${userId}/rating`, {
+      method: 'GET',
+    });
+  },
+
+  updateReview: async (id, rating, comment = '') => {
+    return await request(`/reviews/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ rating, comment }),
+    });
+  },
+
+  deleteReview: async (id) => {
+    return await request(`/reviews/${id}`, {
+      method: 'DELETE',
+    });
+  },
 };
 
 export default api;
