@@ -17,7 +17,13 @@ import ConversationsPage from './pages/ConversationsPage';
 import ChatPage from './pages/ChatPage';
 import MyDealsPage from './pages/MyDealsPage';
 import DealDetailsPage from './pages/DealDetailsPage';
-import ProtectedRoute from './components/ProtectedRoute';
+import AdminRoute from './components/AdminRoute';
+import AdminDashboard from './pages/AdminDashboard';
+import AdminUsersPage from './pages/AdminUsersPage';
+import AdminScrapsPage from './pages/AdminScrapsPage';
+import AdminDealsPage from './pages/AdminDealsPage';
+import AdminReviewsPage from './pages/AdminReviewsPage';
+import AdminReportsPage from './pages/AdminReportsPage';
 
 function HomeRedirect() {
   const { user, isAuthenticated, loading } = useAuth();
@@ -34,6 +40,10 @@ function HomeRedirect() {
     return <Navigate to="/login" replace />;
   }
 
+  if (user?.role === 'admin') {
+    return <Navigate to="/admin" replace />;
+  }
+
   return <Navigate to={user?.role === 'buyer' ? '/buyer/dashboard' : '/seller/dashboard'} replace />;
 }
 
@@ -45,6 +55,56 @@ function App() {
           <Route path="/" element={<HomeRedirect />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+
+          {/* Admin Routes */}
+          <Route
+            path="/admin"
+            element={
+              <AdminRoute>
+                <AdminDashboard />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/users"
+            element={
+              <AdminRoute>
+                <AdminUsersPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/scraps"
+            element={
+              <AdminRoute>
+                <AdminScrapsPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/deals"
+            element={
+              <AdminRoute>
+                <AdminDealsPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/reviews"
+            element={
+              <AdminRoute>
+                <AdminReviewsPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/reports"
+            element={
+              <AdminRoute>
+                <AdminReportsPage />
+              </AdminRoute>
+            }
+          />
 
           <Route
             path="/buyer/dashboard"

@@ -349,6 +349,131 @@ export const api = {
       method: 'DELETE',
     });
   },
+
+  // User Report Submission
+  createReport: async (reportData) => {
+    return await request('/reports', {
+      method: 'POST',
+      body: JSON.stringify(reportData),
+    });
+  },
+
+  // Admin Dashboard & Management API (Step 15)
+  getAdminDashboardStats: async () => {
+    return await request('/admin/dashboard', {
+      method: 'GET',
+    });
+  },
+
+  getAdminUsers: async (params = {}) => {
+    const queryParams = new URLSearchParams();
+    Object.keys(params).forEach((key) => {
+      if (params[key] !== undefined && params[key] !== null && params[key] !== '') {
+        queryParams.append(key, params[key]);
+      }
+    });
+    const query = queryParams.toString();
+    return await request(`/admin/users${query ? `?${query}` : ''}`, {
+      method: 'GET',
+    });
+  },
+
+  getAdminUserById: async (id) => {
+    return await request(`/admin/users/${id}`, {
+      method: 'GET',
+    });
+  },
+
+  updateAdminUserStatus: async (id, status) => {
+    return await request(`/admin/users/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    });
+  },
+
+  getAdminScraps: async (params = {}) => {
+    const queryParams = new URLSearchParams();
+    Object.keys(params).forEach((key) => {
+      if (params[key] !== undefined && params[key] !== null && params[key] !== '') {
+        queryParams.append(key, params[key]);
+      }
+    });
+    const query = queryParams.toString();
+    return await request(`/admin/scraps${query ? `?${query}` : ''}`, {
+      method: 'GET',
+    });
+  },
+
+  getAdminScrapById: async (id) => {
+    return await request(`/admin/scraps/${id}`, {
+      method: 'GET',
+    });
+  },
+
+  updateAdminScrapStatus: async (id, status) => {
+    return await request(`/admin/scraps/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    });
+  },
+
+  getAdminDeals: async (params = {}) => {
+    const queryParams = new URLSearchParams();
+    Object.keys(params).forEach((key) => {
+      if (params[key] !== undefined && params[key] !== null && params[key] !== '') {
+        queryParams.append(key, params[key]);
+      }
+    });
+    const query = queryParams.toString();
+    return await request(`/admin/deals${query ? `?${query}` : ''}`, {
+      method: 'GET',
+    });
+  },
+
+  getAdminDealById: async (id) => {
+    return await request(`/admin/deals/${id}`, {
+      method: 'GET',
+    });
+  },
+
+  getAdminReviews: async (params = {}) => {
+    const queryParams = new URLSearchParams();
+    Object.keys(params).forEach((key) => {
+      if (params[key] !== undefined && params[key] !== null && params[key] !== '') {
+        queryParams.append(key, params[key]);
+      }
+    });
+    const query = queryParams.toString();
+    return await request(`/admin/reviews${query ? `?${query}` : ''}`, {
+      method: 'GET',
+    });
+  },
+
+  deleteAdminReview: async (id) => {
+    return await request(`/admin/reviews/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  getAdminReports: async (params = {}) => {
+    const queryParams = new URLSearchParams();
+    Object.keys(params).forEach((key) => {
+      if (params[key] !== undefined && params[key] !== null && params[key] !== '') {
+        queryParams.append(key, params[key]);
+      }
+    });
+    const query = queryParams.toString();
+    return await request(`/admin/reports${query ? `?${query}` : ''}`, {
+      method: 'GET',
+    });
+  },
+
+  updateAdminReportStatus: async (id, status, resolutionNotes = '') => {
+    return await request(`/admin/reports/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status, resolutionNotes }),
+    });
+  },
 };
 
 export default api;
