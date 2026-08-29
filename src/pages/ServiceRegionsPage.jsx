@@ -94,8 +94,8 @@ function ServiceRegionsPage() {
     setErrorMsg('');
     setSuccessMsg('');
 
-    if (!formData.state.trim() || !formData.district.trim() || !formData.city.trim()) {
-      setErrorMsg('State, District, and City are required fields');
+    if (!formData.state.trim() || !formData.district.trim()) {
+      setErrorMsg('State and District are required fields');
       return;
     }
 
@@ -122,7 +122,7 @@ function ServiceRegionsPage() {
         const res = await api.updateServiceRegion(editingRegion._id, payload);
         if (res.success) {
           setSuccessMsg('Service region updated successfully!');
-          setRegions(res.serviceRegions || []);
+          setRegions(res.data || res.serviceRegions || []);
           closeModal();
         }
       } else {
@@ -130,7 +130,7 @@ function ServiceRegionsPage() {
         const res = await api.addServiceRegion(payload);
         if (res.success) {
           setSuccessMsg('New service region added successfully!');
-          setRegions(res.serviceRegions || []);
+          setRegions(res.data ? (Array.isArray(res.data) ? res.data : res.serviceRegions) : res.serviceRegions || []);
           closeModal();
         }
       }
@@ -220,7 +220,7 @@ function ServiceRegionsPage() {
               <div key={reg._id} className="region-card">
                 <div className="region-card-body">
                   <div className="region-city-title">
-                    {reg.area ? `${reg.area}, ` : ''}{reg.city}
+                    {reg.area ? `${reg.area}, ` : ''}{reg.city || `${reg.district} (Entire District)`}
                   </div>
                   <div className="region-location-detail">
                     {reg.district && <span>{reg.district} District</span>}
@@ -299,7 +299,7 @@ function ServiceRegionsPage() {
 
                 <div className="form-group">
                   <label className="form-label" htmlFor="city">
-                    City / Town <span className="required-star">*</span>
+                    City / Area (Optional)
                   </label>
                   <input
                     id="city"
@@ -308,8 +308,7 @@ function ServiceRegionsPage() {
                     className="form-input"
                     value={formData.city}
                     onChange={handleChange}
-                    placeholder="e.g. Pala"
-                    required
+                    placeholder="e.g. Pala (leave empty for entire district)"
                   />
                 </div>
               </div>

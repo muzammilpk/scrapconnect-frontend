@@ -3,21 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import ScrapCard from '../components/ScrapCard';
-
-const SCRAP_CATEGORIES = [
-  'All Categories',
-  'Paper',
-  'Books',
-  'Plastic',
-  'Metal',
-  'Iron',
-  'Copper',
-  'Aluminium',
-  'Cardboard',
-  'Bottles',
-  'E-Waste',
-  'Other',
-];
+import ScrapFilters from '../components/ScrapFilters';
+import ScrapCardSkeleton from '../components/ScrapCardSkeleton';
 
 function BrowseScrapPage() {
   const { user, logout } = useAuth();
@@ -27,16 +14,23 @@ function BrowseScrapPage() {
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Filter & Query States
+  // Search & Filter State
   const [searchQuery, setSearchQuery] = useState('');
   const [activeSearch, setActiveSearch] = useState('');
-  const [category, setCategory] = useState('All Categories');
-  const [district, setDistrict] = useState('');
-  const [city, setCity] = useState('');
-  const [stateName, setStateName] = useState('');
+  const [filters, setFilters] = useState({
+    category: 'All Categories',
+    state: '',
+    district: '',
+    city: '',
+    area: '',
+    pincode: '',
+    minWeight: '',
+    maxWeight: '',
+  });
   const [sort, setSort] = useState('newest');
-  
-  // Pagination States
+  const [showFilterPanel, setShowFilterPanel] = useState(false);
+
+  // Pagination State
   const [page, setPage] = useState(1);
   const [limit] = useState(12);
   const [totalPages, setTotalPages] = useState(1);
@@ -49,10 +43,14 @@ function BrowseScrapPage() {
     try {
       const params = {
         search: activeSearch,
-        category: category !== 'All Categories' ? category : '',
-        district: district.trim(),
-        city: city.trim(),
-        state: stateName.trim(),
+        category: filters.category !== 'All Categories' ? filters.category : '',
+        state: filters.state.trim(),
+        district: filters.district.trim(),
+        city: filters.city.trim(),
+        area: filters.area.trim(),
+        pincode: filters.pincode.trim(),
+        minWeight: filters.minWeight,
+        maxWeight: filters.maxWeight,
         sort,
         page,
         limit,
@@ -60,17 +58,18 @@ function BrowseScrapPage() {
 
       const res = await api.getMarketplaceScraps(params);
       if (res.success) {
-        setScraps(res.scraps || []);
-        setPage(res.page || 1);
-        setTotalPages(res.totalPages || 1);
-        setTotalListings(res.totalListings || 0);
+        setScraps(res.data || res.scraps || []);
+        setPage(res.pagination?.page || res.page || 1);
+        setTotalPages(res.pagination?.totalPages || res.totalPages || 1);
+        setTotalListings(res.pagination?.total || res.totalListings || 0);
       }
     } catch (err) {
-      setErrorMsg(err.message || 'Failed to load scrap marketplace listings.');
+      console.error('Marketplace API error:', err);
+      setErrorMsg('Unable to load scrap listings.');
     } finally {
       setLoading(false);
     }
-  }, [activeSearch, category, district, city, stateName, sort, page, limit]);
+  }, [activeSearch, filters, sort, page, limit]);
 
   useEffect(() => {
     fetchScraps();
@@ -79,19 +78,54 @@ function BrowseScrapPage() {
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     setPage(1);
-    setActiveSearch(searchQuery);
+    setActiveSearch(searchQuery.trim());
   };
 
-  const handleClearSearch = () => {
+  const handleApplyFilters = (newFilters) => {
+    setPage(1);
+    setFilters(newFilters);
+  };
+
+  const handleClearFilters = () => {
     setSearchQuery('');
     setActiveSearch('');
-    setCategory('All Categories');
-    setDistrict('');
-    setCity('');
-    setStateName('');
+    setFilters({
+      category: 'All Categories',
+      state: '',
+      district: '',
+      city: '',
+      area: '',
+      pincode: '',
+      minWeight: '',
+      maxWeight: '',
+    });
     setSort('newest');
     setPage(1);
   };
+
+  const removeFilterTag = (key) => {
+    setPage(1);
+    if (key === 'search') {
+      setSearchQuery('');
+      setActiveSearch('');
+    } else if (key === 'category') {
+      setFilters((prev) => ({ ...prev, category: 'All Categories' }));
+    } else {
+      setFilters((prev) => ({ ...prev, [key]: '' }));
+    }
+  };
+
+  // Helper to collect active filter tags
+  const activeTags = [];
+  if (activeSearch) activeTags.push({ key: 'search', label: `Search: "${activeSearch}"` });
+  if (filters.category && filters.category !== 'All Categories') activeTags.push({ key: 'category', label: filters.category });
+  if (filters.state) activeTags.push({ key: 'state', label: `State: ${filters.state}` });
+  if (filters.district) activeTags.push({ key: 'district', label: `District: ${filters.district}` });
+  if (filters.city) activeTags.push({ key: 'city', label: `City: ${filters.city}` });
+  if (filters.area) activeTags.push({ key: 'area', label: `Area: ${filters.area}` });
+  if (filters.pincode) activeTags.push({ key: 'pincode', label: `Pincode: ${filters.pincode}` });
+  if (filters.minWeight) activeTags.push({ key: 'minWeight', label: `Min: ${filters.minWeight}kg` });
+  if (filters.maxWeight) activeTags.push({ key: 'maxWeight', label: `Max: ${filters.maxWeight}kg` });
 
   return (
     <div className="dashboard-container">
@@ -128,21 +162,19 @@ function BrowseScrapPage() {
         <div className="marketplace-wrapper">
           <div className="marketplace-header">
             <h1 className="welcome-title">Browse Scrap Marketplace</h1>
-            <p className="welcome-sub">Discover available scrap materials offered by verified sellers</p>
+            <p className="welcome-sub">Discover available scrap materials offered by verified local sellers</p>
           </div>
 
-          {errorMsg && <div className="alert-error">⚠️ {errorMsg}</div>}
-
-          {/* SEARCH & FILTERS BAR */}
+          {/* SEARCH & FILTERS CONTROLS */}
           <div className="marketplace-filter-card">
-            {/* Search Input Row */}
+            {/* Search Bar Row */}
             <form onSubmit={handleSearchSubmit} className="search-bar-row">
               <div className="search-input-wrapper">
                 <span className="search-icon">🔍</span>
                 <input
                   type="text"
                   className="search-input"
-                  placeholder="Search by title, category, or description (e.g. plastic, iron, paper)..."
+                  placeholder="Search scrap, category or item (e.g. plastic, iron, paper)..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
@@ -162,100 +194,113 @@ function BrowseScrapPage() {
               <button type="submit" className="btn-primary search-submit-btn">
                 Search
               </button>
+              <button
+                type="button"
+                className={`btn-secondary filter-toggle-btn ${showFilterPanel ? 'active' : ''}`}
+                onClick={() => setShowFilterPanel((prev) => !prev)}
+              >
+                ⚙️ Filters {activeTags.length > 0 ? `(${activeTags.length})` : ''}
+              </button>
             </form>
 
-            {/* Filter Dropdowns Grid */}
-            <div className="filter-controls-grid">
-              <div className="filter-group">
-                <label className="filter-label">Category</label>
+            {/* Expandable Advanced Filter Panel */}
+            {showFilterPanel && (
+              <div className="filter-panel-wrapper" style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #E2E8F0' }}>
+                <ScrapFilters filters={filters} onApply={handleApplyFilters} onClear={handleClearFilters} />
+              </div>
+            )}
+
+            {/* Quick Sort & Active Filter Tags Bar */}
+            <div className="marketplace-toolbar-row">
+              {/* Left: Active Filter Chips */}
+              <div className="active-filters-chips">
+                {activeTags.length > 0 ? (
+                  <>
+                    <span className="filter-chips-label">Filters:</span>
+                    {activeTags.map((tag) => (
+                      <span key={tag.key} className="filter-chip">
+                        {tag.label}
+                        <button
+                          type="button"
+                          className="chip-remove"
+                          onClick={() => removeFilterTag(tag.key)}
+                          title="Remove filter"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                    <button type="button" className="btn-link-sm" onClick={handleClearFilters} style={{ marginLeft: '0.5rem' }}>
+                      Clear All
+                    </button>
+                  </>
+                ) : (
+                  <span className="filter-chips-label text-muted">No active filters applied</span>
+                )}
+              </div>
+
+              {/* Right: Sort By Dropdown */}
+              <div className="sort-dropdown-wrapper">
+                <label className="filter-label" htmlFor="sortBySelect" style={{ marginRight: '0.5rem', marginBottom: 0 }}>
+                  Sort By:
+                </label>
                 <select
-                  className="form-input form-select"
-                  value={category}
-                  onChange={(e) => {
-                    setCategory(e.target.value);
-                    setPage(1);
-                  }}
-                >
-                  {SCRAP_CATEGORIES.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="filter-group">
-                <label className="filter-label">District</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  placeholder="Filter district..."
-                  value={district}
-                  onChange={(e) => {
-                    setDistrict(e.target.value);
-                    setPage(1);
-                  }}
-                />
-              </div>
-
-              <div className="filter-group">
-                <label className="filter-label">City / Town</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  placeholder="Filter city..."
-                  value={city}
-                  onChange={(e) => {
-                    setCity(e.target.value);
-                    setPage(1);
-                  }}
-                />
-              </div>
-
-              <div className="filter-group">
-                <label className="filter-label">Sort By</label>
-                <select
-                  className="form-input form-select"
+                  id="sortBySelect"
+                  className="form-input form-select sort-select"
                   value={sort}
                   onChange={(e) => {
                     setSort(e.target.value);
                     setPage(1);
                   }}
+                  style={{ width: 'auto', display: 'inline-block' }}
                 >
-                  <option value="newest">Newest First</option>
-                  <option value="oldest">Oldest First</option>
-                  <option value="weight_asc">Weight: Low to High</option>
-                  <option value="weight_desc">Weight: High to Low</option>
+                  <option value="newest">Newest</option>
+                  <option value="oldest">Oldest</option>
+                  <option value="weight_low">Weight: Low to High</option>
+                  <option value="weight_high">Weight: High to Low</option>
                 </select>
               </div>
             </div>
-
-            {/* Reset Filters Option */}
-            {(activeSearch || category !== 'All Categories' || district || city || stateName || sort !== 'newest') && (
-              <div className="reset-filters-row">
-                <span className="active-filter-summary">
-                  Showing results for {totalListings} {totalListings === 1 ? 'listing' : 'listings'}
-                </span>
-                <button className="btn-link-sm" onClick={handleClearSearch}>
-                  🔄 Reset All Filters
-                </button>
-              </div>
-            )}
           </div>
 
-          {/* MARKETPLACE LISTINGS GRID */}
-          {loading ? (
-            <div className="loading-card">Loading scrap marketplace...</div>
+          {/* SEARCH RESULTS COUNT HEADER */}
+          {!loading && !errorMsg && (
+            <div className="results-count-bar">
+              <h3>
+                {totalListings} scrap listing{totalListings !== 1 ? 's' : ''} found
+              </h3>
+            </div>
+          )}
+
+          {/* ERROR STATE */}
+          {errorMsg ? (
+            <div className="empty-listings-card alert-error-box">
+              <div className="empty-icon">⚠️</div>
+              <h3>Unable to load scrap listings.</h3>
+              <p>There was a problem communicating with the marketplace server.</p>
+              <button className="btn-primary" onClick={fetchScraps} style={{ marginTop: '1rem' }}>
+                Try Again
+              </button>
+            </div>
+          ) : loading ? (
+            /* LOADING SKELETON STATE */
+            <div className="scraps-grid">
+              {Array.from({ length: 6 }).map((_, idx) => (
+                <ScrapCardSkeleton key={idx} />
+              ))}
+            </div>
           ) : scraps.length === 0 ? (
+            /* NO RESULTS STATE */
             <div className="empty-listings-card">
               <div className="empty-icon">🔍</div>
-              <h3>No Available Scrap Listings Found</h3>
-              <p>Try searching for a different keyword or adjusting your category/location filters.</p>
-              <button className="btn-secondary" onClick={handleClearSearch} style={{ marginTop: '1rem' }}>
+              <h3>No scrap listings found.</h3>
+              <p>Try changing your search or filters.</p>
+              <button className="btn-primary" onClick={handleClearFilters} style={{ marginTop: '1rem' }}>
                 Clear Filters
               </button>
             </div>
           ) : (
+            /* SCRAP LISTINGS GRID */
             <>
               <div className="scraps-grid">
                 {scraps.map((scrap) => (

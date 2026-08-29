@@ -76,27 +76,27 @@ export const api = {
 
   // Buyer Service Regions APIs
   getServiceRegions: async () => {
-    return await request('/buyers/service-regions', {
+    return await request('/users/me/service-regions', {
       method: 'GET',
     });
   },
 
   addServiceRegion: async (regionData) => {
-    return await request('/buyers/service-regions', {
+    return await request('/users/me/service-regions', {
       method: 'POST',
       body: JSON.stringify(regionData),
     });
   },
 
   updateServiceRegion: async (regionId, regionData) => {
-    return await request(`/buyers/service-regions/${regionId}`, {
-      method: 'PUT',
+    return await request(`/users/me/service-regions/${regionId}`, {
+      method: 'PATCH',
       body: JSON.stringify(regionData),
     });
   },
 
   deleteServiceRegion: async (regionId) => {
-    return await request(`/buyers/service-regions/${regionId}`, {
+    return await request(`/users/me/service-regions/${regionId}`, {
       method: 'DELETE',
     });
   },

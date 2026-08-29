@@ -24,10 +24,10 @@ function BuyerDashboard() {
         ]);
 
         if (regionsRes.success) {
-          setRegions(regionsRes.serviceRegions || []);
+          setRegions(regionsRes.data || regionsRes.serviceRegions || []);
         }
         if (scrapsRes.success) {
-          setAvailableCount(scrapsRes.totalListings || 0);
+          setAvailableCount(scrapsRes.pagination?.total ?? scrapsRes.totalListings ?? 0);
         }
         if (notifRes.success) {
           setUnreadNotifCount(notifRes.unreadCount || 0);
@@ -143,7 +143,7 @@ function BuyerDashboard() {
                     {regions.slice(0, 4).map((reg) => (
                       <li key={reg._id} className="summary-region-item">
                         <span className="bullet-dot">🟢</span>
-                        <strong>{reg.area ? `${reg.area}, ` : ''}{reg.city}</strong>
+                        <strong>{reg.area ? `${reg.area}, ` : ''}{reg.city || reg.district}</strong>
                       </li>
                     ))}
                   </ul>

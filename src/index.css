@@ -4236,3 +4236,116 @@ a:hover {
     grid-template-columns: 1fr;
   }
 }
+
+/* ==========================================================================
+   STEP 16 — ADVANCED SEARCH, FILTERS & LOCATION IMPROVEMENTS STYLES
+   ========================================================================== */
+
+.filter-panel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.filter-actions-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.filter-toggle-btn.active {
+  background-color: var(--color-light-green);
+  border-color: var(--color-primary);
+  color: var(--color-dark-green);
+}
+
+.marketplace-toolbar-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed #E2E8F0;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.active-filters-chips {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.filter-chips-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-main-text);
+}
+
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background-color: var(--color-light-green);
+  color: var(--color-dark-green);
+  border: 1px solid rgba(22, 163, 74, 0.3);
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.chip-remove {
+  background: none;
+  border: none;
+  color: var(--color-dark-green);
+  font-weight: 800;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 0.15rem;
+  border-radius: 50%;
+  transition: background-color 0.15s ease;
+}
+
+.chip-remove:hover {
+  background-color: rgba(22, 163, 74, 0.2);
+}
+
+.sort-dropdown-wrapper {
+  display: flex;
+  align-items: center;
+}
+
+.results-count-bar {
+  margin-bottom: 1.25rem;
+}
+
+.results-count-bar h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-main-text);
+}
+
+.alert-error-box {
+  background-color: #FEF2F2;
+  border: 1px solid #FCA5A5;
+  border-radius: var(--radius-lg);
+  padding: 2rem;
+  text-align: center;
+}
+
+/* Skeleton Loading Animation */
+@keyframes skeletonPulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+.skeleton-card {
+  animation: skeletonPulse 1.5s infinite ease-in-out;
+}
+
