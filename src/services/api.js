@@ -61,16 +61,52 @@ export const api = {
 
   // Get user profile
   getProfile: async () => {
-    return await request('/users/profile', {
+    return await request('/users/me', {
       method: 'GET',
     });
   },
 
   // Update user profile and location
   updateProfile: async (profileData) => {
-    return await request('/users/profile', {
-      method: 'PUT',
+    return await request('/users/me', {
+      method: 'PATCH',
       body: JSON.stringify(profileData),
+    });
+  },
+
+  // Get user dynamic statistics
+  getUserStats: async () => {
+    return await request('/users/me/stats', {
+      method: 'GET',
+    });
+  },
+
+  // Get public profile for user by ID
+  getPublicProfile: async (userId) => {
+    return await request(`/users/${userId}/profile`, {
+      method: 'GET',
+    });
+  },
+
+  // Get public seller active listings
+  getPublicSellerListings: async (sellerId) => {
+    return await request(`/users/${sellerId}/listings`, {
+      method: 'GET',
+    });
+  },
+
+  // Change account password
+  changePassword: async (passwordData) => {
+    return await request('/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify(passwordData),
+    });
+  },
+
+  // Deactivate user account
+  deactivateAccount: async () => {
+    return await request('/users/me/status', {
+      method: 'PATCH',
     });
   },
 

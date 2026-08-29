@@ -24,6 +24,10 @@ import AdminScrapsPage from './pages/AdminScrapsPage';
 import AdminDealsPage from './pages/AdminDealsPage';
 import AdminReviewsPage from './pages/AdminReviewsPage';
 import AdminReportsPage from './pages/AdminReportsPage';
+import EditProfilePage from './pages/EditProfilePage';
+import AccountSettingsPage from './pages/AccountSettingsPage';
+import PublicProfilePage from './pages/PublicProfilePage';
+import ProtectedRoute from './components/ProtectedRoute';
 
 function HomeRedirect() {
   const { user, isAuthenticated, loading } = useAuth();
@@ -192,6 +196,33 @@ function App() {
             element={
               <ProtectedRoute>
                 <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/profile/edit"
+            element={
+              <ProtectedRoute>
+                <EditProfilePage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/account-settings"
+            element={
+              <ProtectedRoute>
+                <AccountSettingsPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/users/:id/profile"
+            element={
+              <ProtectedRoute>
+                <PublicProfilePage />
               </ProtectedRoute>
             }
           />

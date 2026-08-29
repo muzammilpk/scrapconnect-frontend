@@ -194,6 +194,16 @@ function BuyerScrapDetailPage() {
                       {scrap.seller?.email && (
                         <div className="seller-sub-text">📧 {scrap.seller.email}</div>
                       )}
+                      {scrap.seller?._id && (
+                        <button
+                          type="button"
+                          className="btn-link-sm"
+                          onClick={() => navigate(`/users/${scrap.seller._id}/profile`)}
+                          style={{ marginTop: '0.3rem', display: 'inline-block' }}
+                        >
+                          👤 View Seller Profile →
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>

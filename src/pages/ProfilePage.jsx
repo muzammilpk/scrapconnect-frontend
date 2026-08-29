@@ -15,13 +15,14 @@ function ProfilePage() {
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Rating & Review state
+  // Rating & Review state and Stats state
   const [ratingSummary, setRatingSummary] = useState({
     averageRating: 0,
     totalReviews: 0,
     distribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
   });
   const [receivedReviews, setReceivedReviews] = useState([]);
+  const [userStats, setUserStats] = useState(null);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -53,30 +54,36 @@ function ProfilePage() {
     }
   }, [user]);
 
-  // Fetch latest profile, rating summary, and reviews
+  // Fetch latest profile, stats, rating summary, and reviews
   useEffect(() => {
     const fetchProfileAndReviews = async () => {
       if (!user?._id) return;
       setLoading(true);
       try {
-        const [profRes, ratingRes, revRes] = await Promise.all([
+        const [profRes, statsRes, ratingRes, revRes] = await Promise.all([
           api.getProfile(),
+          api.getUserStats(),
           api.getUserRatingSummary(user._id),
           api.getUserReviews(user._id),
         ]);
 
-        if (profRes.success && profRes.user) {
+        if (profRes.success && (profRes.user || profRes.data)) {
+          const uData = profRes.user || profRes.data;
           setFormData({
-            name: profRes.user.name || '',
-            mobileNumber: profRes.user.mobileNumber || '',
-            profileImage: profRes.user.profileImage || '',
-            address: profRes.user.address || '',
-            state: profRes.user.location?.state || '',
-            district: profRes.user.location?.district || '',
-            city: profRes.user.location?.city || '',
-            area: profRes.user.location?.area || '',
-            pincode: profRes.user.location?.pincode || '',
+            name: uData.name || '',
+            mobileNumber: uData.mobileNumber || '',
+            profileImage: uData.profileImage || '',
+            address: uData.address || '',
+            state: uData.location?.state || '',
+            district: uData.location?.district || '',
+            city: uData.location?.city || '',
+            area: uData.location?.area || '',
+            pincode: uData.location?.pincode || '',
           });
+        }
+
+        if (statsRes.success) {
+          setUserStats(statsRes.stats || statsRes.data);
         }
 
         if (ratingRes.success) {
@@ -91,7 +98,7 @@ function ProfilePage() {
           setReceivedReviews(revRes.reviews || []);
         }
       } catch (err) {
-        console.error('Failed to fetch profile/reviews:', err.message);
+        console.error('Failed to fetch profile/reviews/stats:', err.message);
       } finally {
         setLoading(false);
       }
@@ -275,11 +282,16 @@ function ProfilePage() {
               </div>
             </div>
 
-            <div className="profile-action-area">
+            <div className="profile-action-area" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
               {!isEditing ? (
-                <button className="btn-primary edit-toggle-btn" onClick={() => setIsEditing(true)}>
-                  ✏️ Edit Profile
-                </button>
+                <>
+                  <button className="btn-primary edit-toggle-btn" onClick={() => setIsEditing(true)}>
+                    ✏️ Edit Profile
+                  </button>
+                  <button className="btn-secondary" onClick={() => navigate('/account-settings')}>
+                    ⚙️ Account Settings
+                  </button>
+                </>
               ) : (
                 <button
                   className="btn-secondary cancel-toggle-btn"
@@ -298,32 +310,113 @@ function ProfilePage() {
             <div className="loading-card">Loading profile data...</div>
           ) : !isEditing ? (
             /* VIEW PROFILE MODE */
-            <div className="profile-details-grid">
-              {/* Account Overview */}
-              <div className="profile-card">
-                <h3 className="card-title">👤 Account Overview</h3>
-                <div className="info-group">
-                  <label className="info-label">Full Name</label>
-                  <div className="info-value">{user?.name || '—'}</div>
-                </div>
+            <>
+              {/* DYNAMIC ROLE ACTIVITY STATS CARDS */}
+              {userStats && (
+                <div className="buyer-dashboard-grid" style={{ marginBottom: '1.5rem' }}>
+                  {user?.role === 'seller' ? (
+                    <>
+                      <div className="buyer-summary-card highlight-card">
+                        <div className="summary-card-header">
+                          <h3 className="summary-card-title">Active Scrap Listings</h3>
+                        </div>
+                        <div className="summary-card-body">
+                          <div className="summary-stat-large">📦 {userStats.activeListings || 0}</div>
+                          <button className="btn-secondary btn-full" onClick={() => navigate('/seller/scraps')}>
+                            Manage Listings
+                          </button>
+                        </div>
+                      </div>
 
-                <div className="info-group">
-                  <label className="info-label">Email Address</label>
-                  <div className="info-value">{user?.email || '—'}</div>
-                </div>
+                      <div className="buyer-summary-card">
+                        <div className="summary-card-header">
+                          <h3 className="summary-card-title">Completed Deals</h3>
+                        </div>
+                        <div className="summary-card-body">
+                          <div className="summary-stat-large">🤝 {userStats.completedDeals || 0}</div>
+                          <button className="btn-secondary btn-full" onClick={() => navigate('/deals')}>
+                            View Deals
+                          </button>
+                        </div>
+                      </div>
 
-                <div className="info-group">
-                  <label className="info-label">Mobile Number</label>
-                  <div className="info-value">{user?.mobileNumber || 'Not specified'}</div>
-                </div>
+                      <div className="buyer-summary-card">
+                        <div className="summary-card-header">
+                          <h3 className="summary-card-title">Sold Scrap Items</h3>
+                        </div>
+                        <div className="summary-card-body">
+                          <div className="summary-stat-large">♻️ {userStats.soldScrap || 0}</div>
+                        </div>
+                      </div>
+                    </>
+                  ) : user?.role === 'buyer' ? (
+                    <>
+                      <div className="buyer-summary-card highlight-card">
+                        <div className="summary-card-header">
+                          <h3 className="summary-card-title">Offers Submitted</h3>
+                        </div>
+                        <div className="summary-card-body">
+                          <div className="summary-stat-large">💬 {userStats.offersMade || 0}</div>
+                          <button className="btn-secondary btn-full" onClick={() => navigate('/conversations')}>
+                            My Messages & Offers
+                          </button>
+                        </div>
+                      </div>
 
-                <div className="info-group">
-                  <label className="info-label">Account Role</label>
-                  <div className="info-value text-capitalize">
-                    <span className="role-chip">{user?.role}</span>
+                      <div className="buyer-summary-card">
+                        <div className="summary-card-header">
+                          <h3 className="summary-card-title">Active Deals</h3>
+                        </div>
+                        <div className="summary-card-body">
+                          <div className="summary-stat-large">🚚 {userStats.activeDeals || 0}</div>
+                          <button className="btn-secondary btn-full" onClick={() => navigate('/deals')}>
+                            Active Deals
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="buyer-summary-card">
+                        <div className="summary-card-header">
+                          <h3 className="summary-card-title">Completed Deals</h3>
+                        </div>
+                        <div className="summary-card-body">
+                          <div className="summary-stat-large">🤝 {userStats.completedDeals || 0}</div>
+                          <button className="btn-secondary btn-full" onClick={() => navigate('/deals')}>
+                            History
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  ) : null}
+                </div>
+              )}
+
+              <div className="profile-details-grid">
+                {/* Account Overview */}
+                <div className="profile-card">
+                  <h3 className="card-title">👤 Account Overview</h3>
+                  <div className="info-group">
+                    <label className="info-label">Full Name</label>
+                    <div className="info-value">{user?.name || '—'}</div>
+                  </div>
+
+                  <div className="info-group">
+                    <label className="info-label">Email Address</label>
+                    <div className="info-value">{user?.email || '—'}</div>
+                  </div>
+
+                  <div className="info-group">
+                    <label className="info-label">Mobile Number</label>
+                    <div className="info-value">{user?.mobileNumber || 'Not specified'}</div>
+                  </div>
+
+                  <div className="info-group">
+                    <label className="info-label">Account Role</label>
+                    <div className="info-value text-capitalize">
+                      <span className="role-chip">{user?.role}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
 
               {/* Saved Location Details */}
               <div className="profile-card">
@@ -409,6 +502,7 @@ function ProfilePage() {
                 </div>
               </div>
             </div>
+            </>
           ) : (
             /* EDIT PROFILE MODE */
             <form onSubmit={handleSubmit} className="profile-edit-form">
