@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
@@ -17,10 +17,50 @@ function AccountSettingsPage() {
   const [passSuccess, setPassSuccess] = useState('');
   const [passError, setPassError] = useState('');
 
-  // Account Deactivation Modal state
-  const [showDeactivateModal, setShowDeactivateModal] = useState(false);
-  const [deactivating, setDeactivating] = useState(false);
-  const [deactivateError, setDeactivateError] = useState('');
+  // Notification Preferences state
+  const [prefs, setPrefs] = useState({
+    newScrapInRegion: true,
+    newMessages: true,
+    offers: true,
+    dealUpdates: true,
+    reviewReminders: true,
+  });
+  const [prefsLoading, setPrefsLoading] = useState(false);
+  const [prefsSuccess, setPrefsSuccess] = useState('');
+  const [prefsError, setPrefsError] = useState('');
+
+  // Fetch notification preferences on mount
+  useEffect(() => {
+    const fetchPrefs = async () => {
+      try {
+        const res = await api.getNotificationPreferences();
+        if (res.success && res.notificationPreferences) {
+          setPrefs(res.notificationPreferences);
+        }
+      } catch (err) {
+        // Quiet fail
+      }
+    };
+    fetchPrefs();
+  }, []);
+
+  const handlePrefToggle = async (key) => {
+    const updatedPrefs = { ...prefs, [key]: !prefs[key] };
+    setPrefs(updatedPrefs);
+    setPrefsSuccess('');
+    setPrefsError('');
+
+    try {
+      const res = await api.updateNotificationPreferences(updatedPrefs);
+      if (res.success) {
+        setPrefsSuccess('✓ Notification preferences saved');
+        setTimeout(() => setPrefsSuccess(''), 3000);
+      }
+    } catch (err) {
+      setPrefsError(err.message || 'Failed to update preferences');
+      setPrefs((prev) => ({ ...prev, [key]: !prev[key] })); // Revert
+    }
+  };
 
   const handlePassChange = (e) => {
     const { name, value } = e.target;
@@ -246,7 +286,95 @@ function AccountSettingsPage() {
             </form>
           </div>
 
-          {/* SECTION 3: ACCOUNT DEACTIVATION */}
+          {/* SECTION 3: NOTIFICATION PREFERENCES */}
+          <div className="form-section-card">
+            <h3 className="section-card-title">🔔 Notification Settings</h3>
+            <p className="welcome-sub" style={{ marginBottom: '1.25rem' }}>
+              Choose which in-app alerts and notifications you would like to receive.
+            </p>
+
+            {prefsSuccess && <div className="alert-success">{prefsSuccess}</div>}
+            {prefsError && <div className="alert-error">⚠️ {prefsError}</div>}
+
+            <div className="notification-preferences-list">
+              <div className="pref-row">
+                <div>
+                  <div className="pref-title">New scrap in my regions</div>
+                  <div className="pref-desc">Receive alerts when scrap matching your service regions is posted</div>
+                </div>
+                <label className="switch-toggle">
+                  <input
+                    type="checkbox"
+                    checked={prefs.newScrapInRegion !== false}
+                    onChange={() => handlePrefToggle('newScrapInRegion')}
+                  />
+                  <span className="switch-slider" />
+                </label>
+              </div>
+
+              <div className="pref-row">
+                <div>
+                  <div className="pref-title">New chat messages</div>
+                  <div className="pref-desc">Get notified when buyers or sellers send you direct messages</div>
+                </div>
+                <label className="switch-toggle">
+                  <input
+                    type="checkbox"
+                    checked={prefs.newMessages !== false}
+                    onChange={() => handlePrefToggle('newMessages')}
+                  />
+                  <span className="switch-slider" />
+                </label>
+              </div>
+
+              <div className="pref-row">
+                <div>
+                  <div className="pref-title">Offers & counter-offers</div>
+                  <div className="pref-desc">Receive updates on price offers, acceptances, and rejections</div>
+                </div>
+                <label className="switch-toggle">
+                  <input
+                    type="checkbox"
+                    checked={prefs.offers !== false}
+                    onChange={() => handlePrefToggle('offers')}
+                  />
+                  <span className="switch-slider" />
+                </label>
+              </div>
+
+              <div className="pref-row">
+                <div>
+                  <div className="pref-title">Deal updates</div>
+                  <div className="pref-desc">Get notified when pickup dates or deal statuses are updated</div>
+                </div>
+                <label className="switch-toggle">
+                  <input
+                    type="checkbox"
+                    checked={prefs.dealUpdates !== false}
+                    onChange={() => handlePrefToggle('dealUpdates')}
+                  />
+                  <span className="switch-slider" />
+                </label>
+              </div>
+
+              <div className="pref-row">
+                <div>
+                  <div className="pref-title">Review reminders</div>
+                  <div className="pref-desc">Receive reminders to leave ratings and feedback after completing deals</div>
+                </div>
+                <label className="switch-toggle">
+                  <input
+                    type="checkbox"
+                    checked={prefs.reviewReminders !== false}
+                    onChange={() => handlePrefToggle('reviewReminders')}
+                  />
+                  <span className="switch-slider" />
+                </label>
+              </div>
+            </div>
+          </div>
+
+          {/* SECTION 4: ACCOUNT DEACTIVATION */}
           <div className="form-section-card alert-error-box" style={{ textAlign: 'left' }}>
             <h3 className="section-card-title" style={{ color: '#DC2626' }}>⚠️ Danger Zone</h3>
             <p className="detail-text" style={{ marginBottom: '1rem' }}>

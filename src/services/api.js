@@ -510,6 +510,20 @@ export const api = {
       body: JSON.stringify({ status, resolutionNotes }),
     });
   },
+
+  // Notification Preferences
+  getNotificationPreferences: async () => {
+    return await request('/users/me/notification-preferences', {
+      method: 'GET',
+    });
+  },
+
+  updateNotificationPreferences: async (preferences) => {
+    return await request('/users/me/notification-preferences', {
+      method: 'PATCH',
+      body: JSON.stringify(preferences),
+    });
+  },
 };
 
 export default api;

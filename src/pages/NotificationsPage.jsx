@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from '../components/NotificationBell';
 import api from '../services/api';
+import { getSocket } from '../services/socketService';
 
 function NotificationsPage() {
   const { user, logout } = useAuth();
@@ -23,8 +24,8 @@ function NotificationsPage() {
       const res = await api.getNotifications(targetPage, 10);
       if (res.success) {
         setNotifications(res.notifications || []);
-        setTotalPages(res.totalPages || 1);
-        setPage(res.page || 1);
+        setTotalPages(res.pagination?.totalPages || res.totalPages || 1);
+        setPage(res.pagination?.page || res.page || 1);
         setUnreadCount(res.unreadCount || 0);
       }
     } catch (err) {
@@ -36,6 +37,17 @@ function NotificationsPage() {
 
   useEffect(() => {
     fetchNotifications(1);
+
+    const socket = getSocket();
+    if (socket) {
+      const handleNewNotification = (newNotif) => {
+        setNotifications((prev) => [newNotif, ...prev]);
+        setUnreadCount((prev) => prev + 1);
+      };
+
+      socket.on('notification:new', handleNewNotification);
+      return () => socket.off('notification:new', handleNewNotification);
+    }
   }, []);
 
   const handleMarkAsRead = async (notificationId, e) => {
@@ -89,14 +101,34 @@ function NotificationsPage() {
       await handleMarkAsRead(notification._id);
     }
 
-    // 2. Navigate to scrap details page
+    // 2. Smart navigation based on notification type and refs
     if (notification.scrap) {
       const scrapId = typeof notification.scrap === 'object' ? notification.scrap._id : notification.scrap;
-      if (user?.role === 'buyer') {
-        navigate(`/buyer/scraps/${scrapId}`);
-      } else {
-        navigate(`/seller/scraps/${scrapId}`);
-      }
+      navigate(user?.role === 'buyer' ? `/buyer/scraps/${scrapId}` : `/seller/scraps/${scrapId}`);
+    } else if (notification.type === 'NEW_MESSAGE' || notification.type?.startsWith('OFFER_')) {
+      navigate('/conversations');
+    } else if (notification.type === 'DEAL_UPDATE' || notification.type === 'REVIEW_REQUEST') {
+      navigate('/deals');
+    }
+  };
+
+  const getNotifIcon = (type) => {
+    switch (type) {
+      case 'NEW_SCRAP':
+      case 'new_scrap_nearby':
+        return '📦';
+      case 'NEW_MESSAGE':
+        return '💬';
+      case 'OFFER_RECEIVED':
+      case 'OFFER_ACCEPTED':
+      case 'OFFER_REJECTED':
+        return '💰';
+      case 'DEAL_UPDATE':
+        return '🤝';
+      case 'REVIEW_REQUEST':
+        return '⭐';
+      default:
+        return '🔔';
     }
   };
 
@@ -204,7 +236,7 @@ function NotificationsPage() {
                 >
                   <div className="notif-icon-col">
                     <div className={`notif-icon-badge ${!notif.isRead ? 'unread' : ''}`}>
-                      {notif.type === 'new_scrap_nearby' ? '📦' : '🔔'}
+                      {getNotifIcon(notif.type)}
                     </div>
                   </div>
 
