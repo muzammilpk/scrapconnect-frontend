@@ -26,6 +26,7 @@ function EditScrapPage() {
   const [submitting, setSubmitting] = useState(false);
   const [uploadingImages, setUploadingImages] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [initialStatus, setInitialStatus] = useState('available');
 
   const [uploadedImages, setUploadedImages] = useState([]);
   const [formData, setFormData] = useState({
@@ -34,6 +35,7 @@ function EditScrapPage() {
     description: '',
     estimatedWeight: '',
     weightUnit: 'kg',
+    expectedPrice: '',
     status: 'available',
     state: '',
     district: '',
@@ -49,12 +51,14 @@ function EditScrapPage() {
         const res = await api.getScrapById(id);
         if (res.success && res.scrap) {
           const s = res.scrap;
+          setInitialStatus(s.status || 'available');
           setFormData({
             title: s.title || '',
             category: s.category || 'Metal',
             description: s.description || '',
-            estimatedWeight: s.estimatedWeight || '',
+            estimatedWeight: s.estimatedWeight !== undefined && s.estimatedWeight !== null ? s.estimatedWeight : '',
             weightUnit: s.weightUnit || 'kg',
+            expectedPrice: s.expectedPrice !== undefined && s.expectedPrice !== null ? s.expectedPrice : '',
             status: s.status || 'available',
             state: s.location?.state || '',
             district: s.location?.district || '',
@@ -74,6 +78,8 @@ function EditScrapPage() {
     fetchScrap();
   }, [id]);
 
+  const isRestricted = ['reserved', 'sold'].includes(initialStatus);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -85,6 +91,11 @@ function EditScrapPage() {
   const handleImageSelect = async (e) => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
+
+    if (uploadedImages.length + files.length > 5) {
+      setErrorMsg(`Maximum 5 images allowed per listing. (Already uploaded: ${uploadedImages.length})`);
+      return;
+    }
 
     for (const file of files) {
       if (file.size > 5 * 1024 * 1024) {
@@ -108,7 +119,7 @@ function EditScrapPage() {
 
       const res = await api.uploadScrapImages(uploadData);
       if (res.success && res.images) {
-        setUploadedImages((prev) => [...prev, ...res.images]);
+        setUploadedImages((prev) => [...prev, ...res.images].slice(0, 5));
       }
     } catch (err) {
       setErrorMsg(err.message || 'Failed to upload images');
@@ -130,8 +141,13 @@ function EditScrapPage() {
       return;
     }
 
-    if (!formData.estimatedWeight || Number(formData.estimatedWeight) <= 0) {
-      setErrorMsg('Valid estimated weight is required');
+    if (formData.estimatedWeight && (isNaN(formData.estimatedWeight) || Number(formData.estimatedWeight) < 0)) {
+      setErrorMsg('Valid estimated weight is required if provided');
+      return;
+    }
+
+    if (formData.expectedPrice && (isNaN(formData.expectedPrice) || Number(formData.expectedPrice) < 0)) {
+      setErrorMsg('Expected price cannot be negative');
       return;
     }
 
@@ -142,8 +158,9 @@ function EditScrapPage() {
         category: formData.category,
         description: formData.description.trim(),
         images: uploadedImages,
-        estimatedWeight: Number(formData.estimatedWeight),
+        estimatedWeight: formData.estimatedWeight !== '' ? Number(formData.estimatedWeight) : null,
         weightUnit: formData.weightUnit,
+        expectedPrice: formData.expectedPrice !== '' ? Number(formData.expectedPrice) : null,
         status: formData.status,
         location: {
           state: formData.state.trim(),
@@ -195,8 +212,14 @@ function EditScrapPage() {
         <div className="form-page-container">
           <div className="form-header">
             <h1 className="welcome-title">✏️ Edit Scrap Listing</h1>
-            <p className="welcome-sub">Update scrap details, weight, status, or photos</p>
+            <p className="welcome-sub">Update scrap details, weight, price, status, or photos</p>
           </div>
+
+          {isRestricted && (
+            <div className="alert-success" style={{ background: '#FEF3C7', color: '#92400E', borderColor: '#F59E0B' }}>
+              ℹ️ This listing is currently <strong>{initialStatus.toUpperCase()}</strong>. Core terms (category, weight, price, location) are locked to maintain active negotiation integrity.
+            </div>
+          )}
 
           {errorMsg && <div className="alert-error">⚠️ {errorMsg}</div>}
 
@@ -234,6 +257,7 @@ function EditScrapPage() {
                       className="form-input form-select"
                       value={formData.category}
                       onChange={handleChange}
+                      disabled={isRestricted}
                       required
                     >
                       {SCRAP_CATEGORIES.map((cat) => (
@@ -257,6 +281,7 @@ function EditScrapPage() {
                       required
                     >
                       <option value="available">Available 🟢</option>
+                      <option value="draft">Draft 📝</option>
                       <option value="reserved">Reserved 🟠</option>
                       <option value="sold">Sold ⚪</option>
                     </select>
@@ -278,14 +303,14 @@ function EditScrapPage() {
                 </div>
               </div>
 
-              {/* Section 2: Weight */}
+              {/* Section 2: Weight & Price */}
               <div className="form-section-card">
-                <h3 className="section-card-title">⚖️ Quantity & Weight</h3>
+                <h3 className="section-card-title">⚖️ Weight & Pricing</h3>
 
                 <div className="form-row">
                   <div className="form-group">
                     <label className="form-label" htmlFor="estimatedWeight">
-                      Estimated Weight / Quantity <span className="required-star">*</span>
+                      Estimated Weight / Quantity (Optional)
                     </label>
                     <input
                       id="estimatedWeight"
@@ -295,13 +320,13 @@ function EditScrapPage() {
                       className="form-input"
                       value={formData.estimatedWeight}
                       onChange={handleChange}
-                      required
+                      disabled={isRestricted}
                     />
                   </div>
 
                   <div className="form-group">
                     <label className="form-label" htmlFor="weightUnit">
-                      Unit <span className="required-star">*</span>
+                      Unit
                     </label>
                     <select
                       id="weightUnit"
@@ -309,7 +334,7 @@ function EditScrapPage() {
                       className="form-input form-select"
                       value={formData.weightUnit}
                       onChange={handleChange}
-                      required
+                      disabled={isRestricted}
                     >
                       <option value="kg">Kilograms (kg)</option>
                       <option value="ton">Tons</option>
@@ -317,12 +342,28 @@ function EditScrapPage() {
                       <option value="items">Items / Pieces</option>
                     </select>
                   </div>
+
+                  <div className="form-group">
+                    <label className="form-label" htmlFor="expectedPrice">
+                      Expected Price (₹ INR, Optional)
+                    </label>
+                    <input
+                      id="expectedPrice"
+                      type="number"
+                      step="1"
+                      name="expectedPrice"
+                      className="form-input"
+                      value={formData.expectedPrice}
+                      onChange={handleChange}
+                      disabled={isRestricted}
+                    />
+                  </div>
                 </div>
               </div>
 
               {/* Section 3: Photos */}
               <div className="form-section-card">
-                <h3 className="section-card-title">📸 Photos</h3>
+                <h3 className="section-card-title">📸 Photos (1 to 5 Photos)</h3>
 
                 <div className="upload-dropzone">
                   <input
@@ -332,12 +373,12 @@ function EditScrapPage() {
                     multiple
                     onChange={handleImageSelect}
                     className="file-input-hidden"
-                    disabled={uploadingImages}
+                    disabled={uploadingImages || uploadedImages.length >= 5}
                   />
                   <label htmlFor="editScrapImages" className="dropzone-label">
                     <span className="dropzone-icon">📷</span>
                     <span className="dropzone-text">
-                      {uploadingImages ? 'Uploading images...' : 'Click to add more photos'}
+                      {uploadingImages ? 'Uploading images...' : uploadedImages.length >= 5 ? 'Maximum 5 images reached' : 'Click to add more photos'}
                     </span>
                   </label>
                 </div>
@@ -345,7 +386,12 @@ function EditScrapPage() {
                 {uploadedImages.length > 0 && (
                   <div className="image-previews-grid">
                     {uploadedImages.map((img, idx) => (
-                      <div key={idx} className="preview-thumb-card">
+                      <div key={idx} className="preview-thumb-card" style={{ position: 'relative' }}>
+                        {idx === 0 && (
+                          <span className="primary-img-badge" style={{ position: 'absolute', top: '4px', left: '4px', background: '#16A34A', color: '#fff', fontSize: '0.65rem', padding: '2px 6px', borderRadius: '4px', zIndex: 2 }}>
+                            ⭐ Primary Image
+                          </span>
+                        )}
                         <img src={img.url} alt={`Preview ${idx + 1}`} className="preview-img" />
                         <button
                           type="button"
@@ -377,6 +423,7 @@ function EditScrapPage() {
                       className="form-input"
                       value={formData.area}
                       onChange={handleChange}
+                      disabled={isRestricted}
                     />
                   </div>
 
@@ -391,6 +438,7 @@ function EditScrapPage() {
                       className="form-input"
                       value={formData.city}
                       onChange={handleChange}
+                      disabled={isRestricted}
                       required
                     />
                   </div>
@@ -408,6 +456,7 @@ function EditScrapPage() {
                       className="form-input"
                       value={formData.district}
                       onChange={handleChange}
+                      disabled={isRestricted}
                       required
                     />
                   </div>
@@ -423,6 +472,7 @@ function EditScrapPage() {
                       className="form-input"
                       value={formData.state}
                       onChange={handleChange}
+                      disabled={isRestricted}
                       required
                     />
                   </div>
@@ -438,6 +488,7 @@ function EditScrapPage() {
                       className="form-input"
                       value={formData.pincode}
                       onChange={handleChange}
+                      disabled={isRestricted}
                     />
                   </div>
                 </div>

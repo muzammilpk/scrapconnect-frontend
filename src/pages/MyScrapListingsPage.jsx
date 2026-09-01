@@ -43,12 +43,12 @@ function MyScrapListingsPage() {
     try {
       const res = await api.deleteScrap(deletingId);
       if (res.success) {
-        setSuccessMsg('Scrap listing deleted successfully');
+        setSuccessMsg('Scrap listing removed successfully');
         setScraps((prev) => prev.filter((s) => s._id !== deletingId));
         setDeletingId(null);
       }
     } catch (err) {
-      setErrorMsg(err.message || 'Failed to delete scrap listing');
+      setErrorMsg(err.message || 'Failed to remove scrap listing');
     } finally {
       setDeleting(false);
     }
@@ -106,7 +106,7 @@ function MyScrapListingsPage() {
         <div className="listings-header">
           <div>
             <h1 className="welcome-title">My Scrap Listings</h1>
-            <p className="welcome-sub">Manage your published scrap items and availability status</p>
+            <p className="welcome-sub">Manage your published scrap items, drafts, and availability status</p>
           </div>
 
           <button className="btn-primary add-scrap-header-btn" onClick={() => navigate('/seller/add-scrap')}>
@@ -127,6 +127,12 @@ function MyScrapListingsPage() {
             onClick={() => setStatusFilter('available')}
           >
             Available ({scraps.filter((s) => s.status === 'available').length})
+          </button>
+          <button
+            className={`status-tab-btn ${statusFilter === 'draft' ? 'active' : ''}`}
+            onClick={() => setStatusFilter('draft')}
+          >
+            Drafts ({scraps.filter((s) => s.status === 'draft').length})
           </button>
           <button
             className={`status-tab-btn ${statusFilter === 'reserved' ? 'active' : ''}`}
@@ -150,7 +156,7 @@ function MyScrapListingsPage() {
             <h3>No Scrap Listings Found</h3>
             <p>
               {statusFilter === 'all'
-                ? "You haven't published any scrap listings yet."
+                ? "You haven't created any scrap listings yet."
                 : `No listings with status "${statusFilter}".`}
             </p>
             <button className="btn-primary" onClick={() => navigate('/seller/add-scrap')} style={{ marginTop: '1rem' }}>
@@ -185,10 +191,26 @@ function MyScrapListingsPage() {
                     <h3 className="scrap-card-title">{scrap.title}</h3>
 
                     <div className="scrap-meta-row">
+                      {scrap.estimatedWeight ? (
+                        <div className="meta-item">
+                          <span className="meta-icon">⚖️</span>
+                          <strong>{scrap.estimatedWeight} {scrap.weightUnit || 'kg'}</strong>
+                        </div>
+                      ) : (
+                        <div className="meta-item">
+                          <span className="meta-icon">⚖️</span>
+                          <span>Unspecified Weight</span>
+                        </div>
+                      )}
                       <div className="meta-item">
-                        <span className="meta-icon">⚖️</span>
-                        <strong>{scrap.estimatedWeight} {scrap.weightUnit || 'kg'}</strong>
+                        <span className="meta-icon">🏷️</span>
+                        <strong style={{ color: '#16A34A' }}>
+                          {scrap.expectedPrice ? `₹${scrap.expectedPrice.toLocaleString('en-IN')}` : 'Offers Welcome'}
+                        </strong>
                       </div>
+                    </div>
+
+                    <div className="scrap-meta-row" style={{ marginTop: '0.3rem' }}>
                       <div className="meta-item">
                         <span className="meta-icon">📍</span>
                         <span>{locationStr || 'Location set'}</span>
@@ -196,7 +218,7 @@ function MyScrapListingsPage() {
                     </div>
 
                     <div className="scrap-date-footer">
-                      Published on {formatDate(scrap.createdAt)}
+                      {scrap.status === 'draft' ? 'Created Draft on ' : 'Published on '} {formatDate(scrap.createdAt)}
                     </div>
                   </div>
 
@@ -207,18 +229,22 @@ function MyScrapListingsPage() {
                     >
                       👁️ View
                     </button>
-                    <button
-                      className="btn-secondary btn-sm"
-                      onClick={() => navigate(`/seller/scraps/${scrap._id}/edit`)}
-                    >
-                      ✏️ Edit
-                    </button>
-                    <button
-                      className="btn-danger-link btn-sm"
-                      onClick={() => setDeletingId(scrap._id)}
-                    >
-                      🗑️ Delete
-                    </button>
+                    {['available', 'draft'].includes(scrap.status) && (
+                      <button
+                        className="btn-secondary btn-sm"
+                        onClick={() => navigate(`/seller/scraps/${scrap._id}/edit`)}
+                      >
+                        ✏️ Edit
+                      </button>
+                    )}
+                    {['available', 'draft'].includes(scrap.status) && (
+                      <button
+                        className="btn-danger-link btn-sm"
+                        onClick={() => setDeletingId(scrap._id)}
+                      >
+                        🗑️ Remove
+                      </button>
+                    )}
                   </div>
                 </div>
               );
@@ -232,14 +258,14 @@ function MyScrapListingsPage() {
         <div className="modal-overlay">
           <div className="modal-card modal-confirm">
             <div className="modal-header">
-              <h3>⚠️ Confirm Deletion</h3>
+              <h3>⚠️ Confirm Removal</h3>
             </div>
             <div className="modal-body">
-              <p>Are you sure you want to delete this scrap listing? This action cannot be undone.</p>
+              <p>Are you sure you want to remove this scrap listing? It will no longer appear in the marketplace.</p>
             </div>
             <div className="modal-actions">
               <button className="btn-danger" onClick={handleDelete} disabled={deleting}>
-                {deleting ? 'Deleting...' : 'Yes, Delete Listing'}
+                {deleting ? 'Removing...' : 'Yes, Remove Listing'}
               </button>
               <button className="btn-secondary" onClick={() => setDeletingId(null)} disabled={deleting}>
                 Cancel

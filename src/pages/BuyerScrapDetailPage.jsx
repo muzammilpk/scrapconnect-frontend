@@ -14,6 +14,7 @@ function BuyerScrapDetailPage() {
   const [contactNotice, setContactNotice] = useState('');
 
   const [selectedImgIndex, setSelectedImgIndex] = useState(0);
+  const [startingChat, setStartingChat] = useState(false);
 
   useEffect(() => {
     const fetchScrapDetail = async () => {
@@ -32,8 +33,6 @@ function BuyerScrapDetailPage() {
 
     fetchScrapDetail();
   }, [id]);
-
-  const [startingChat, setStartingChat] = useState(false);
 
   const handleContactClick = async () => {
     if (!scrap || startingChat) return;
@@ -109,7 +108,7 @@ function BuyerScrapDetailPage() {
             <div className="scrap-detail-grid">
               {/* Left Column: Image Gallery */}
               <div className="scrap-gallery-card">
-                <div className="main-image-container">
+                <div className="main-image-container" style={{ position: 'relative' }}>
                   {scrap.images && scrap.images.length > 0 ? (
                     <img
                       src={scrap.images[selectedImgIndex]?.url || scrap.images[0].url}
@@ -121,6 +120,11 @@ function BuyerScrapDetailPage() {
                       <span>📦</span>
                       <p>No Photo Provided</p>
                     </div>
+                  )}
+                  {scrap.images && scrap.images.length > 0 && selectedImgIndex === 0 && (
+                    <span style={{ position: 'absolute', top: '12px', left: '12px', background: 'rgba(22, 163, 74, 0.9)', color: '#fff', fontSize: '0.75rem', fontWeight: '600', padding: '4px 8px', borderRadius: '4px' }}>
+                      ⭐ Primary Photo
+                    </span>
                   )}
                 </div>
 
@@ -150,19 +154,32 @@ function BuyerScrapDetailPage() {
 
                 <h1 className="detail-title">{scrap.title}</h1>
 
-                <div className="weight-price-banner">
-                  <span className="banner-icon">⚖️</span>
-                  <div>
-                    <div className="banner-label">Quantity Available</div>
-                    <div className="banner-value">
-                      {scrap.estimatedWeight} {scrap.weightUnit || 'kg'}
+                {/* Weight & Price Cards */}
+                <div className="detail-banner-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
+                  <div className="weight-price-banner" style={{ margin: 0 }}>
+                    <span className="banner-icon">⚖️</span>
+                    <div>
+                      <div className="banner-label">Quantity / Weight</div>
+                      <div className="banner-value" style={{ fontSize: '1.1rem' }}>
+                        {scrap.estimatedWeight ? `${scrap.estimatedWeight} ${scrap.weightUnit || 'kg'}` : 'Contact Seller'}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="weight-price-banner" style={{ margin: 0, background: '#F0FDF4', borderColor: '#BBF7D0' }}>
+                    <span className="banner-icon">🏷️</span>
+                    <div>
+                      <div className="banner-label">Expected Price</div>
+                      <div className="banner-value" style={{ fontSize: '1.1rem', color: '#16A34A' }}>
+                        {scrap.expectedPrice ? `₹${scrap.expectedPrice.toLocaleString('en-IN')}` : 'Open to Offers'}
+                      </div>
                     </div>
                   </div>
                 </div>
 
                 {/* Location Details */}
                 <div className="detail-section">
-                  <h4 className="section-heading">📍 Location</h4>
+                  <h4 className="section-heading">📍 Pickup Location</h4>
                   <p className="detail-text">
                     <strong>{scrap.location?.area ? `${scrap.location.area}, ` : ''}{scrap.location?.city}</strong>
                     <br />
@@ -174,7 +191,7 @@ function BuyerScrapDetailPage() {
                 {/* Description */}
                 {scrap.description && (
                   <div className="detail-section">
-                    <h4 className="section-heading">📝 Description</h4>
+                    <h4 className="section-heading">📝 Item Details & Description</h4>
                     <p className="detail-text description-body">{scrap.description}</p>
                   </div>
                 )}
@@ -212,15 +229,36 @@ function BuyerScrapDetailPage() {
                   <span>Posted on {formatDate(scrap.createdAt)}</span>
                 </div>
 
-                {/* Contact Seller Action Button */}
-                <div className="contact-seller-action-row">
-                  <button
-                    className="btn-primary btn-lg btn-full"
-                    onClick={handleContactClick}
-                    disabled={startingChat}
-                  >
-                    {startingChat ? 'Starting Chat...' : '💬 Contact Seller'}
-                  </button>
+                {/* Contact Seller & Make Offer Action Buttons */}
+                <div className="contact-seller-action-row" style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem' }}>
+                  {scrap.status === 'available' ? (
+                    <>
+                      <button
+                        className="btn-primary btn-lg"
+                        style={{ flex: 1 }}
+                        onClick={handleContactClick}
+                        disabled={startingChat}
+                      >
+                        {startingChat ? 'Starting Chat...' : '💬 Contact Seller'}
+                      </button>
+                      <button
+                        className="btn-secondary btn-lg"
+                        style={{ flex: 1, borderColor: '#16A34A', color: '#16A34A' }}
+                        onClick={handleContactClick}
+                        disabled={startingChat}
+                      >
+                        🏷️ Make Offer
+                      </button>
+                    </>
+                  ) : scrap.status === 'reserved' ? (
+                    <div className="alert-warning" style={{ width: '100%', textAlign: 'center', margin: 0 }}>
+                      🟠 Listing Reserved — Negotiation in progress with active buyer.
+                    </div>
+                  ) : (
+                    <div className="alert-success" style={{ width: '100%', textAlign: 'center', margin: 0, background: '#F1F5F9', color: '#64748B', borderColor: '#CBD5E1' }}>
+                      ✓ Listing Sold
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

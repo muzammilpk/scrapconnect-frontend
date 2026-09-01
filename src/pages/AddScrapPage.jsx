@@ -26,8 +26,6 @@ function AddScrapPage() {
   const [errorMsg, setErrorMsg] = useState('');
 
   // Selected image files & preview URLs
-  const [selectedFiles, setSelectedFiles] = useState([]);
-  const [imagePreviews, setImagePreviews] = useState([]);
   const [uploadedImages, setUploadedImages] = useState([]); // [{ url, publicId }]
 
   // Form State pre-populated with seller profile location
@@ -37,6 +35,7 @@ function AddScrapPage() {
     description: '',
     estimatedWeight: '',
     weightUnit: 'kg',
+    expectedPrice: '',
     state: user?.location?.state || 'Kerala',
     district: user?.location?.district || 'Kottayam',
     city: user?.location?.city || 'Pala',
@@ -52,10 +51,15 @@ function AddScrapPage() {
     }));
   };
 
-  // Image Selection Handler
+  // Image Selection Handler (Max 5 images total)
   const handleImageSelect = async (e) => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
+
+    if (uploadedImages.length + files.length > 5) {
+      setErrorMsg(`You can upload a maximum of 5 images per listing. (Already uploaded: ${uploadedImages.length})`);
+      return;
+    }
 
     // Validate size and mime type
     for (const file of files) {
@@ -64,7 +68,7 @@ function AddScrapPage() {
         return;
       }
       if (!['image/jpeg', 'image/jpg', 'image/png', 'image/webp'].includes(file.type)) {
-        setErrorMsg(`File "${file.name}" is not a supported image format (JPEG, PNG, WEBP allowed).`);
+        setErrorMsg(`File "${file.name}" is not a supported format (JPEG, PNG, WEBP allowed).`);
         return;
       }
     }
@@ -80,11 +84,7 @@ function AddScrapPage() {
 
       const res = await api.uploadScrapImages(uploadData);
       if (res.success && res.images) {
-        setUploadedImages((prev) => [...prev, ...res.images]);
-
-        // Create local preview URLs
-        const newPreviews = files.map((file) => URL.createObjectURL(file));
-        setImagePreviews((prev) => [...prev, ...newPreviews]);
+        setUploadedImages((prev) => [...prev, ...res.images].slice(0, 5));
       }
     } catch (err) {
       console.error('Upload failed:', err);
@@ -96,11 +96,11 @@ function AddScrapPage() {
 
   const removeImage = (index) => {
     setUploadedImages((prev) => prev.filter((_, i) => i !== index));
-    setImagePreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSaveListing = async (e, targetStatus = 'available') => {
+    if (e) e.preventDefault();
+    if (submitting) return; // Prevent duplicate clicks
     setErrorMsg('');
 
     if (!formData.title.trim()) {
@@ -108,13 +108,18 @@ function AddScrapPage() {
       return;
     }
 
-    if (!formData.estimatedWeight || Number(formData.estimatedWeight) <= 0) {
-      setErrorMsg('Please specify a valid estimated weight/quantity');
+    if (formData.estimatedWeight && (isNaN(formData.estimatedWeight) || Number(formData.estimatedWeight) < 0)) {
+      setErrorMsg('Weight must be a positive number if specified');
+      return;
+    }
+
+    if (formData.expectedPrice && (isNaN(formData.expectedPrice) || Number(formData.expectedPrice) < 0)) {
+      setErrorMsg('Expected price cannot be negative');
       return;
     }
 
     if (!formData.state.trim() || !formData.district.trim() || !formData.city.trim()) {
-      setErrorMsg('State, District, and City are required for the scrap location');
+      setErrorMsg('State, District, and City are required for scrap location');
       return;
     }
 
@@ -125,8 +130,10 @@ function AddScrapPage() {
         category: formData.category,
         description: formData.description.trim(),
         images: uploadedImages,
-        estimatedWeight: Number(formData.estimatedWeight),
+        estimatedWeight: formData.estimatedWeight !== '' ? Number(formData.estimatedWeight) : null,
         weightUnit: formData.weightUnit,
+        expectedPrice: formData.expectedPrice !== '' ? Number(formData.expectedPrice) : null,
+        status: targetStatus,
         location: {
           state: formData.state.trim(),
           district: formData.district.trim(),
@@ -138,10 +145,13 @@ function AddScrapPage() {
 
       const res = await api.createScrap(payload);
       if (res.success) {
-        navigate('/seller/scraps', { state: { successMsg: 'Scrap listing published successfully!' } });
+        const msg = targetStatus === 'draft'
+          ? 'Scrap listing saved as draft.'
+          : 'Scrap listing published successfully. Matching buyers have been notified!';
+        navigate('/seller/scraps', { state: { successMsg: msg } });
       }
     } catch (err) {
-      setErrorMsg(err.message || 'Failed to publish scrap listing.');
+      setErrorMsg(err.message || 'Failed to save scrap listing.');
     } finally {
       setSubmitting(false);
     }
@@ -185,7 +195,7 @@ function AddScrapPage() {
 
           {errorMsg && <div className="alert-error">⚠️ {errorMsg}</div>}
 
-          <form onSubmit={handleSubmit} className="scrap-form-wrapper">
+          <form onSubmit={(e) => handleSaveListing(e, 'available')} className="scrap-form-wrapper">
             {/* Section 1: Basic Information */}
             <div className="form-section-card">
               <h3 className="section-card-title">📝 Basic Information</h3>
@@ -201,7 +211,7 @@ function AddScrapPage() {
                   className="form-input"
                   value={formData.title}
                   onChange={handleChange}
-                  placeholder="e.g. Old iron materials, copper wires, paper bundles"
+                  placeholder="e.g. Mixed Plastic Scrap, Old Newspaper Bundle, Iron Scrap"
                   required
                 />
               </div>
@@ -239,19 +249,19 @@ function AddScrapPage() {
                   rows="4"
                   value={formData.description}
                   onChange={handleChange}
-                  placeholder="Describe condition, scrap types, accessibility for pickup, etc."
+                  placeholder="Describe condition, scrap items, collection accessibility, etc."
                 ></textarea>
               </div>
             </div>
 
-            {/* Section 2: Quantity & Weight */}
+            {/* Section 2: Weight & Price */}
             <div className="form-section-card">
-              <h3 className="section-card-title">⚖️ Quantity & Weight</h3>
+              <h3 className="section-card-title">⚖️ Weight & Pricing</h3>
 
               <div className="form-row">
                 <div className="form-group">
                   <label className="form-label" htmlFor="estimatedWeight">
-                    Estimated Quantity / Weight <span className="required-star">*</span>
+                    Estimated Weight / Quantity (Optional)
                   </label>
                   <input
                     id="estimatedWeight"
@@ -262,13 +272,12 @@ function AddScrapPage() {
                     value={formData.estimatedWeight}
                     onChange={handleChange}
                     placeholder="e.g. 25"
-                    required
                   />
                 </div>
 
                 <div className="form-group">
                   <label className="form-label" htmlFor="weightUnit">
-                    Unit <span className="required-star">*</span>
+                    Unit
                   </label>
                   <select
                     id="weightUnit"
@@ -276,7 +285,6 @@ function AddScrapPage() {
                     className="form-input form-select"
                     value={formData.weightUnit}
                     onChange={handleChange}
-                    required
                   >
                     <option value="kg">Kilograms (kg)</option>
                     <option value="ton">Tons</option>
@@ -284,12 +292,28 @@ function AddScrapPage() {
                     <option value="items">Items / Pieces</option>
                   </select>
                 </div>
+
+                <div className="form-group">
+                  <label className="form-label" htmlFor="expectedPrice">
+                    Expected Price (₹ INR, Optional)
+                  </label>
+                  <input
+                    id="expectedPrice"
+                    type="number"
+                    step="1"
+                    name="expectedPrice"
+                    className="form-input"
+                    value={formData.expectedPrice}
+                    onChange={handleChange}
+                    placeholder="e.g. 2500 (Leave empty for offers)"
+                  />
+                </div>
               </div>
             </div>
 
             {/* Section 3: Photos Upload */}
             <div className="form-section-card">
-              <h3 className="section-card-title">📸 Photos</h3>
+              <h3 className="section-card-title">📸 Photos (1 to 5 Photos)</h3>
 
               <div className="upload-dropzone">
                 <input
@@ -299,14 +323,14 @@ function AddScrapPage() {
                   multiple
                   onChange={handleImageSelect}
                   className="file-input-hidden"
-                  disabled={uploadingImages}
+                  disabled={uploadingImages || uploadedImages.length >= 5}
                 />
                 <label htmlFor="scrapImages" className="dropzone-label">
                   <span className="dropzone-icon">📷</span>
                   <span className="dropzone-text">
-                    {uploadingImages ? 'Uploading images...' : 'Click to select or drop scrap photos'}
+                    {uploadingImages ? 'Uploading images...' : uploadedImages.length >= 5 ? 'Maximum 5 images reached' : 'Click to select or drop scrap photos'}
                   </span>
-                  <span className="dropzone-sub">PNG, JPG, WEBP up to 5MB</span>
+                  <span className="dropzone-sub">PNG, JPG, WEBP up to 5MB ({uploadedImages.length}/5 uploaded)</span>
                 </label>
               </div>
 
@@ -314,7 +338,12 @@ function AddScrapPage() {
               {uploadedImages.length > 0 && (
                 <div className="image-previews-grid">
                   {uploadedImages.map((img, idx) => (
-                    <div key={idx} className="preview-thumb-card">
+                    <div key={idx} className="preview-thumb-card" style={{ position: 'relative' }}>
+                      {idx === 0 && (
+                        <span className="primary-img-badge" style={{ position: 'absolute', top: '4px', left: '4px', background: '#16A34A', color: '#fff', fontSize: '0.65rem', padding: '2px 6px', borderRadius: '4px', zIndex: 2 }}>
+                          ⭐ Primary Image
+                        </span>
+                      )}
                       <img src={img.url} alt={`Scrap preview ${idx + 1}`} className="preview-img" />
                       <button
                         type="button"
@@ -332,7 +361,7 @@ function AddScrapPage() {
 
             {/* Section 4: Location */}
             <div className="form-section-card">
-              <h3 className="section-card-title">📍 Scrap Location</h3>
+              <h3 className="section-card-title">📍 Scrap Pickup Location</h3>
 
               <div className="form-row">
                 <div className="form-group">
@@ -419,8 +448,20 @@ function AddScrapPage() {
 
             {/* Form Actions */}
             <div className="form-actions-bar">
-              <button type="submit" className="btn-primary btn-lg" disabled={submitting || uploadingImages}>
+              <button
+                type="submit"
+                className="btn-primary btn-lg"
+                disabled={submitting || uploadingImages}
+              >
                 {submitting ? 'Publishing Scrap...' : '🚀 Publish Scrap'}
+              </button>
+              <button
+                type="button"
+                className="btn-secondary btn-lg"
+                onClick={(e) => handleSaveListing(e, 'draft')}
+                disabled={submitting || uploadingImages}
+              >
+                💾 Save Draft
               </button>
               <button
                 type="button"

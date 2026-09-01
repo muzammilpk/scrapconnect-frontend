@@ -39,10 +39,26 @@ function ScrapCard({ scrap, detailPath }) {
         <h3 className="scrap-card-title">{scrap.title}</h3>
 
         <div className="scrap-meta-row">
+          {scrap.estimatedWeight ? (
+            <div className="meta-item">
+              <span className="meta-icon">⚖️</span>
+              <strong>{scrap.estimatedWeight} {scrap.weightUnit || 'kg'}</strong>
+            </div>
+          ) : (
+            <div className="meta-item">
+              <span className="meta-icon">⚖️</span>
+              <span>Weight: Ask Seller</span>
+            </div>
+          )}
           <div className="meta-item">
-            <span className="meta-icon">⚖️</span>
-            <strong>{scrap.estimatedWeight} {scrap.weightUnit || 'kg'}</strong>
+            <span className="meta-icon">🏷️</span>
+            <strong style={{ color: '#16A34A' }}>
+              {scrap.expectedPrice ? `₹${scrap.expectedPrice.toLocaleString('en-IN')}` : 'Price on Request'}
+            </strong>
           </div>
+        </div>
+
+        <div className="scrap-meta-row" style={{ marginTop: '0.4rem' }}>
           <div className="meta-item">
             <span className="meta-icon">📍</span>
             <span>{locationStr || 'Location specified'}</span>

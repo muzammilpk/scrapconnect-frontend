@@ -9,6 +9,13 @@ function SellerDashboard() {
   const navigate = useNavigate();
 
   const [scraps, setScraps] = useState([]);
+  const [stats, setStats] = useState({
+    totalCount: 0,
+    availableCount: 0,
+    reservedCount: 0,
+    soldCount: 0,
+    draftCount: 0,
+  });
   const [loadingScraps, setLoadingScraps] = useState(false);
 
   useEffect(() => {
@@ -18,6 +25,18 @@ function SellerDashboard() {
         const res = await api.getMyScraps();
         if (res.success) {
           setScraps(res.scraps || []);
+          if (res.stats) {
+            setStats(res.stats);
+          } else {
+            const items = res.scraps || [];
+            setStats({
+              totalCount: items.length,
+              availableCount: items.filter((s) => s.status === 'available').length,
+              reservedCount: items.filter((s) => s.status === 'reserved').length,
+              soldCount: items.filter((s) => s.status === 'sold').length,
+              draftCount: items.filter((s) => s.status === 'draft').length,
+            });
+          }
         }
       } catch (err) {
         console.error('Failed to load scrap summary:', err.message);
@@ -29,11 +48,6 @@ function SellerDashboard() {
     loadScraps();
   }, []);
 
-  const totalCount = scraps.length;
-  const availableCount = scraps.filter((s) => s.status === 'available').length;
-  const reservedCount = scraps.filter((s) => s.status === 'reserved').length;
-  const soldCount = scraps.filter((s) => s.status === 'sold').length;
-
   const area = user?.location?.area;
   const city = user?.location?.city;
   const locationDisplay = area || city ? `${area ? area : ''}${area && city ? ', ' : ''}${city ? city : ''}` : 'Location not set yet';
@@ -42,7 +56,7 @@ function SellerDashboard() {
     <div className="dashboard-container">
       {/* Top Navbar */}
       <header className="navbar">
-        <div className="navbar-brand">
+        <div className="navbar-brand" onClick={() => navigate('/seller/dashboard')} style={{ cursor: 'pointer' }}>
           <span>♻️</span> ScrapConnect
         </div>
         <div className="user-badge">
@@ -99,7 +113,7 @@ function SellerDashboard() {
           {/* MY SCRAP LISTINGS SUMMARY CARD */}
           <div className="scrap-summary-card">
             <div className="summary-card-header">
-              <h3 className="summary-card-title">📦 My Scrap Summary</h3>
+              <h3 className="summary-card-title">📦 My Scrap Statistics</h3>
               <div className="summary-card-actions">
                 <button className="btn-primary btn-sm" onClick={() => navigate('/seller/add-scrap')}>
                   ➕ Add Scrap
@@ -113,24 +127,29 @@ function SellerDashboard() {
             {loadingScraps ? (
               <div className="summary-loading">Loading scrap statistics...</div>
             ) : (
-              <div className="scrap-stats-grid">
+              <div className="scrap-stats-grid" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
                 <div className="stat-card">
-                  <div className="stat-value">{totalCount}</div>
-                  <div className="stat-label">Total Listings</div>
+                  <div className="stat-value">{stats.totalCount}</div>
+                  <div className="stat-label">Total</div>
                 </div>
 
                 <div className="stat-card available">
-                  <div className="stat-value text-success">{availableCount}</div>
+                  <div className="stat-value text-success">{stats.availableCount}</div>
                   <div className="stat-label">Available</div>
                 </div>
 
+                <div className="stat-card draft" style={{ background: '#FFFBEB' }}>
+                  <div className="stat-value" style={{ color: '#D97706' }}>{stats.draftCount}</div>
+                  <div className="stat-label">Drafts</div>
+                </div>
+
                 <div className="stat-card reserved">
-                  <div className="stat-value text-warning">{reservedCount}</div>
+                  <div className="stat-value text-warning">{stats.reservedCount}</div>
                   <div className="stat-label">Reserved</div>
                 </div>
 
                 <div className="stat-card sold">
-                  <div className="stat-value text-muted">{soldCount}</div>
+                  <div className="stat-value text-muted">{stats.soldCount}</div>
                   <div className="stat-label">Sold</div>
                 </div>
               </div>
@@ -138,7 +157,7 @@ function SellerDashboard() {
           </div>
 
           <div className="placeholder-notice">
-            📌 <strong>Seller Dashboard Notice</strong> — Pickup scheduling, buyer interest, and price negotiations will be enabled in subsequent project steps.
+            📌 <strong>Seller Overview</strong> — Buyers within your service regions receive instant location notifications when you publish new scrap listings.
           </div>
         </div>
       </main>

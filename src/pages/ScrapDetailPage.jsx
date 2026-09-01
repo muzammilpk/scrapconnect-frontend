@@ -62,10 +62,10 @@ function ScrapDetailPage() {
     try {
       const res = await api.deleteScrap(id);
       if (res.success) {
-        navigate('/seller/scraps', { state: { successMsg: 'Scrap listing deleted successfully.' } });
+        navigate('/seller/scraps', { state: { successMsg: 'Scrap listing removed successfully.' } });
       }
     } catch (err) {
-      setErrorMsg(err.message || 'Failed to delete scrap listing.');
+      setErrorMsg(err.message || 'Failed to remove scrap listing.');
     } finally {
       setDeleting(false);
     }
@@ -128,7 +128,7 @@ function ScrapDetailPage() {
             <div className="scrap-detail-grid">
               {/* Left Column: Image Gallery */}
               <div className="scrap-gallery-card">
-                <div className="main-image-container">
+                <div className="main-image-container" style={{ position: 'relative' }}>
                   {scrap.images && scrap.images.length > 0 ? (
                     <img
                       src={scrap.images[selectedImgIndex]?.url || scrap.images[0].url}
@@ -140,6 +140,11 @@ function ScrapDetailPage() {
                       <span>📦</span>
                       <p>No Image Available</p>
                     </div>
+                  )}
+                  {scrap.images && scrap.images.length > 0 && selectedImgIndex === 0 && (
+                    <span style={{ position: 'absolute', top: '12px', left: '12px', background: 'rgba(22, 163, 74, 0.9)', color: '#fff', fontSize: '0.75rem', fontWeight: '600', padding: '4px 8px', borderRadius: '4px' }}>
+                      ⭐ Primary Photo
+                    </span>
                   )}
                 </div>
 
@@ -169,12 +174,31 @@ function ScrapDetailPage() {
 
                 <h1 className="detail-title">{scrap.title}</h1>
 
-                <div className="weight-price-banner">
-                  <span className="banner-icon">⚖️</span>
-                  <div>
-                    <div className="banner-label">Estimated Quantity</div>
-                    <div className="banner-value">
-                      {scrap.estimatedWeight} {scrap.weightUnit || 'kg'}
+                {scrap.status === 'draft' && (
+                  <div className="alert-warning" style={{ marginBottom: '1.25rem', background: '#FEF3C7', color: '#92400E', borderColor: '#F59E0B' }}>
+                    📝 <strong>Draft Listing</strong> — This scrap is not visible in the marketplace and buyers have not been notified.
+                  </div>
+                )}
+
+                {/* Weight & Price Cards */}
+                <div className="detail-banner-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
+                  <div className="weight-price-banner" style={{ margin: 0 }}>
+                    <span className="banner-icon">⚖️</span>
+                    <div>
+                      <div className="banner-label">Estimated Quantity</div>
+                      <div className="banner-value" style={{ fontSize: '1.1rem' }}>
+                        {scrap.estimatedWeight ? `${scrap.estimatedWeight} ${scrap.weightUnit || 'kg'}` : 'Unspecified'}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="weight-price-banner" style={{ margin: 0, background: '#F0FDF4', borderColor: '#BBF7D0' }}>
+                    <span className="banner-icon">🏷️</span>
+                    <div>
+                      <div className="banner-label">Expected Price</div>
+                      <div className="banner-value" style={{ fontSize: '1.1rem', color: '#16A34A' }}>
+                        {scrap.expectedPrice ? `₹${scrap.expectedPrice.toLocaleString('en-IN')}` : 'Offers Welcome'}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -204,7 +228,7 @@ function ScrapDetailPage() {
                     <span>Seller:</span> <strong>{scrap.seller?.name || user?.name}</strong>
                   </div>
                   <div className="meta-footer-item">
-                    <span>Published:</span> <span>{formatDate(scrap.createdAt)}</span>
+                    <span>Created:</span> <span>{formatDate(scrap.createdAt)}</span>
                   </div>
                 </div>
 
@@ -256,7 +280,7 @@ function ScrapDetailPage() {
                       className="btn-secondary btn-danger-text"
                       onClick={() => setShowDeleteModal(true)}
                     >
-                      🗑️ Delete Listing
+                      🗑️ Remove Listing
                     </button>
                   </div>
                 )}
@@ -271,14 +295,14 @@ function ScrapDetailPage() {
         <div className="modal-overlay">
           <div className="modal-card modal-confirm">
             <div className="modal-header">
-              <h3>⚠️ Confirm Deletion</h3>
+              <h3>⚠️ Confirm Removal</h3>
             </div>
             <div className="modal-body">
-              <p>Are you sure you want to delete this scrap listing? This cannot be undone.</p>
+              <p>Are you sure you want to remove this scrap listing? It will no longer be visible in marketplace searches.</p>
             </div>
             <div className="modal-actions">
               <button className="btn-danger" onClick={handleDelete} disabled={deleting}>
-                {deleting ? 'Deleting...' : 'Yes, Delete Listing'}
+                {deleting ? 'Removing...' : 'Yes, Remove Listing'}
               </button>
               <button className="btn-secondary" onClick={() => setShowDeleteModal(false)} disabled={deleting}>
                 Cancel

@@ -163,8 +163,9 @@ export const api = {
     });
   },
 
-  getMyScraps: async () => {
-    return await request('/scraps/my-listings', {
+  getMyScraps: async (status = '') => {
+    const query = status ? `?status=${encodeURIComponent(status)}` : '';
+    return await request(`/scraps/my-listings${query}`, {
       method: 'GET',
     });
   },
