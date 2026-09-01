@@ -22,10 +22,19 @@ const request = async (endpoint, options = {}) => {
 
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
-    const data = await response.json();
+    const data = await response.json().catch(() => ({ message: 'Server error' }));
+
+    if (response.status === 401 && !endpoint.includes('/auth/login') && !endpoint.includes('/auth/register')) {
+      localStorage.removeItem('scrapconnect_token');
+      localStorage.removeItem('scrapconnect_user');
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
+      throw new Error(data.message || 'Session expired. Please log in again.');
+    }
 
     if (!response.ok) {
-      throw new Error(data.message || 'Something went wrong');
+      throw new Error(data.message || `Request failed with status ${response.status}`);
     }
 
     return data;
