@@ -3,12 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from '../components/NotificationBell';
 import api from '../services/api';
+import { getSocket } from '../services/socketService';
 
 function ConversationsPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   const [conversations, setConversations] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [onlineUsersMap, setOnlineUsersMap] = useState({});
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -29,7 +32,48 @@ function ConversationsPage() {
 
   useEffect(() => {
     fetchConversations();
-  }, []);
+
+    const socket = getSocket();
+    if (socket) {
+      const handleUserOnline = ({ userId }) => {
+        if (userId) setOnlineUsersMap((prev) => ({ ...prev, [userId]: true }));
+      };
+
+      const handleUserOffline = ({ userId }) => {
+        if (userId) setOnlineUsersMap((prev) => ({ ...prev, [userId]: false }));
+      };
+
+      const handleMessageNew = (newMsg) => {
+        setConversations((prevConvs) => {
+          const convId = typeof newMsg.conversation === 'object' ? newMsg.conversation._id : newMsg.conversation;
+          return prevConvs.map((conv) => {
+            if (conv._id === convId) {
+              const isOtherSender = typeof newMsg.sender === 'object' ? newMsg.sender._id !== user?._id : newMsg.sender !== user?._id;
+              return {
+                ...conv,
+                lastMessage: newMsg.text,
+                lastMessageAt: newMsg.createdAt,
+                unreadCount: isOtherSender ? (conv.unreadCount || 0) + 1 : conv.unreadCount,
+              };
+            }
+            return conv;
+          }).sort((a, b) => new Date(b.lastMessageAt) - new Date(a.lastMessageAt));
+        });
+      };
+
+      socket.on('user_online', handleUserOnline);
+      socket.on('user_offline', handleUserOffline);
+      socket.on('message:new', handleMessageNew);
+      socket.on('new_message', handleMessageNew);
+
+      return () => {
+        socket.off('user_online', handleUserOnline);
+        socket.off('user_offline', handleUserOffline);
+        socket.off('message:new', handleMessageNew);
+        socket.off('new_message', handleMessageNew);
+      };
+    }
+  }, [user]);
 
   const getOtherParticipant = (conv) => {
     if (!conv || !user) return { name: 'User', role: '' };
@@ -50,6 +94,22 @@ function ConversationsPage() {
     if (diffHours < 24) return `${diffHours}h ago`;
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
+
+  const filteredConversations = conversations.filter((conv) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase().trim();
+    const otherUser = getOtherParticipant(conv);
+    const scrap = conv.scrap || {};
+
+    return (
+      otherUser.name?.toLowerCase().includes(q) ||
+      scrap.title?.toLowerCase().includes(q) ||
+      scrap.category?.toLowerCase().includes(q) ||
+      conv.lastMessage?.toLowerCase().includes(q)
+    );
+  });
+
+  const totalUnreadChatCount = conversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
 
   return (
     <div className="dashboard-container">
@@ -87,25 +147,52 @@ function ConversationsPage() {
       <main className="dashboard-content">
         <div className="conversations-header">
           <div>
-            <h1>Messages 💬</h1>
+            <h1>
+              Messages 💬{' '}
+              {totalUnreadChatCount > 0 && (
+                <span className="unread-dot-badge" style={{ verticalAlign: 'middle', fontSize: '0.85rem' }}>
+                  {totalUnreadChatCount}
+                </span>
+              )}
+            </h1>
             <p className="welcome-sub">Direct real-time communication with buyers and sellers</p>
           </div>
         </div>
+
+        {/* Search Bar */}
+        {conversations.length > 0 && (
+          <div className="search-bar-wrapper" style={{ marginBottom: '1.25rem' }}>
+            <input
+              type="text"
+              className="search-input"
+              placeholder="🔍 Search messages by user name, scrap item, or message content..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            {searchQuery && (
+              <button className="search-clear-btn" onClick={() => setSearchQuery('')}>
+                ✕
+              </button>
+            )}
+          </div>
+        )}
 
         {errorMsg && <div className="alert-error">⚠️ {errorMsg}</div>}
 
         {loading ? (
           <div className="loading-card">Loading messages...</div>
-        ) : conversations.length === 0 ? (
+        ) : filteredConversations.length === 0 ? (
           <div className="empty-regions-card">
             <div className="empty-icon">💬</div>
-            <h3>No Conversations Yet</h3>
+            <h3>{searchQuery ? 'No Matching Conversations' : 'No Conversations Yet'}</h3>
             <p>
-              {user?.role === 'buyer'
+              {searchQuery
+                ? 'Try searching with a different keyword or name.'
+                : user?.role === 'buyer'
                 ? 'Browse scrap listings and click "Contact Seller" to start chatting.'
                 : 'When buyers contact you regarding your scrap listings, messages will appear here.'}
             </p>
-            {user?.role === 'buyer' && (
+            {user?.role === 'buyer' && !searchQuery && (
               <button
                 className="btn-primary"
                 onClick={() => navigate('/buyer/browse')}
@@ -117,9 +204,11 @@ function ConversationsPage() {
           </div>
         ) : (
           <div className="conversations-list">
-            {conversations.map((conv) => {
+            {filteredConversations.map((conv) => {
               const otherUser = getOtherParticipant(conv) || {};
               const scrap = conv.scrap || {};
+              const otherUserIdStr = otherUser._id ? otherUser._id.toString() : '';
+              const isOnline = onlineUsersMap[otherUserIdStr] || false;
 
               return (
                 <div
@@ -127,8 +216,9 @@ function ConversationsPage() {
                   className={`conversation-card ${conv.unreadCount > 0 ? 'has-unread' : ''}`}
                   onClick={() => navigate(`/chat/${conv._id}`)}
                 >
-                  <div className="conv-avatar">
+                  <div className="conv-avatar" style={{ position: 'relative' }}>
                     {otherUser.name ? otherUser.name.charAt(0).toUpperCase() : '👤'}
+                    {isOnline && <span className="online-status-dot" title="Online" />}
                   </div>
 
                   <div className="conv-details">
@@ -138,6 +228,7 @@ function ConversationsPage() {
                         <span className="conv-role-pill">
                           {otherUser.role === 'seller' ? 'Seller' : 'Buyer'}
                         </span>
+                        {isOnline && <span className="online-badge-text">● Online</span>}
                       </h4>
                       <span className="conv-time">{formatDate(conv.lastMessageAt)}</span>
                     </div>

@@ -27,6 +27,10 @@ function ChatPage() {
   const [submittingOffer, setSubmittingOffer] = useState(false);
   const [showOfferHistory, setShowOfferHistory] = useState(false);
 
+  // Online status & Reconnection state
+  const [isOtherOnline, setIsOtherOnline] = useState(false);
+  const [isReconnecting, setIsReconnecting] = useState(false);
+
   // Typing indicator state
   const [isOtherTyping, setIsOtherTyping] = useState(false);
   const typingTimeoutRef = useRef(null);
@@ -91,6 +95,12 @@ function ChatPage() {
     scrollToBottom();
   }, [messages, isOtherTyping]);
 
+  const getOtherParticipant = () => {
+    if (!conversation || !user) return { name: 'User', role: '' };
+    const isBuyer = conversation.buyer?._id === user._id || conversation.buyer === user._id;
+    return isBuyer ? conversation.seller : conversation.buyer;
+  };
+
   // 3. Socket.IO Integration
   useEffect(() => {
     if (!conversationId || !user) return;
@@ -103,11 +113,43 @@ function ChatPage() {
     // Mark read event to socket
     socket.emit('message_read', { conversationId });
 
+    const otherUserObj = getOtherParticipant();
+    const otherUserId = otherUserObj?._id ? otherUserObj._id.toString() : '';
+
+    if (otherUserId) {
+      socket.emit('check_online_status', { userId: otherUserId }, (res) => {
+        if (res && typeof res.online === 'boolean') {
+          setIsOtherOnline(res.online);
+        }
+      });
+    }
+
+    const handleUserOnline = (data) => {
+      if (otherUserId && data.userId === otherUserId) {
+        setIsOtherOnline(true);
+      }
+    };
+
+    const handleUserOffline = (data) => {
+      if (otherUserId && data.userId === otherUserId) {
+        setIsOtherOnline(false);
+      }
+    };
+
+    const handleConnect = () => {
+      setIsReconnecting(false);
+      socket.emit('join_conversation', { conversationId });
+    };
+
+    const handleDisconnect = () => {
+      setIsReconnecting(true);
+    };
+
     // Listener: Incoming New Message
     const handleNewMessage = (newMsg) => {
-      if (newMsg.conversation === conversationId || newMsg.conversation?._id === conversationId) {
+      const msgConvId = typeof newMsg.conversation === 'object' ? newMsg.conversation._id : newMsg.conversation;
+      if (msgConvId === conversationId) {
         setMessages((prev) => {
-          // Avoid duplicate rendering
           if (prev.some((m) => m._id === newMsg._id)) return prev;
           return [...prev, newMsg];
         });
@@ -140,6 +182,7 @@ function ChatPage() {
           prev.map((m) => ({
             ...m,
             isRead: true,
+            status: 'read',
           }))
         );
       }
@@ -152,21 +195,31 @@ function ChatPage() {
       }
     };
 
+    socket.on('message:new', handleNewMessage);
     socket.on('new_message', handleNewMessage);
     socket.on('user_typing', handleUserTyping);
     socket.on('user_stop_typing', handleUserStopTyping);
     socket.on('messages_read', handleMessagesRead);
     socket.on('offer_updated', handleOfferUpdated);
+    socket.on('user_online', handleUserOnline);
+    socket.on('user_offline', handleUserOffline);
+    socket.on('connect', handleConnect);
+    socket.on('disconnect', handleDisconnect);
 
     return () => {
       socket.emit('leave_conversation', { conversationId });
+      socket.off('message:new', handleNewMessage);
       socket.off('new_message', handleNewMessage);
       socket.off('user_typing', handleUserTyping);
       socket.off('user_stop_typing', handleUserStopTyping);
       socket.off('messages_read', handleMessagesRead);
       socket.off('offer_updated', handleOfferUpdated);
+      socket.off('user_online', handleUserOnline);
+      socket.off('user_offline', handleUserOffline);
+      socket.off('connect', handleConnect);
+      socket.off('disconnect', handleDisconnect);
     };
-  }, [conversationId, user]);
+  }, [conversationId, user, conversation]);
 
   // OFFER ACTION HANDLERS
   const handleOfferModalSubmit = async (numAmount) => {
@@ -187,7 +240,6 @@ function ChatPage() {
         setCounterParentOffer(null);
         await fetchOffers();
 
-        // Emit real-time socket event to other participant
         socket.emit('notify_offer_update', {
           conversationId,
           offer: res.offer,
@@ -280,7 +332,9 @@ function ChatPage() {
 
   // Handle Input Change & Typing Indicator Emission
   const handleInputChange = (e) => {
-    setInputText(e.target.value);
+    if (e.target.value.length <= 2000) {
+      setInputText(e.target.value);
+    }
 
     const socket = getSocket();
     socket.emit('typing_start', { conversationId });
@@ -292,9 +346,17 @@ function ChatPage() {
     }, 1500);
   };
 
+  // Handle Key Down (Enter to send, Shift+Enter for new line)
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend(e);
+    }
+  };
+
   // Handle Send Message
   const handleSend = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     if (!inputText || !inputText.trim() || sending) return;
 
     const textToSend = inputText.trim();
@@ -320,12 +382,6 @@ function ChatPage() {
     } finally {
       setSending(false);
     }
-  };
-
-  const getOtherParticipant = () => {
-    if (!conversation || !user) return { name: 'User', role: '' };
-    const isBuyer = conversation.buyer?._id === user._id || conversation.buyer === user._id;
-    return isBuyer ? conversation.seller : conversation.buyer;
   };
 
   const otherUser = getOtherParticipant();
@@ -360,6 +416,11 @@ function ChatPage() {
 
       {/* Main Chat Area */}
       <main className="dashboard-content chat-main-content">
+        {isReconnecting && (
+          <div className="alert-warning-banner" style={{ textAlign: 'center', marginBottom: '0.75rem' }}>
+            ⚠️ Reconnecting to chat server...
+          </div>
+        )}
         {errorMsg && <div className="alert-error">⚠️ {errorMsg}</div>}
 
         {loading ? (
@@ -369,8 +430,9 @@ function ChatPage() {
             {/* Header: Other Participant & Scrap Info */}
             <div className="chat-window-header">
               <div className="chat-header-user">
-                <div className="chat-header-avatar">
+                <div className="chat-header-avatar" style={{ position: 'relative' }}>
                   {otherUser?.name ? otherUser.name.charAt(0).toUpperCase() : '👤'}
+                  {isOtherOnline && <span className="online-status-dot" title="Online" />}
                 </div>
                 <div>
                   <h3 className="chat-header-name">
@@ -378,6 +440,15 @@ function ChatPage() {
                     <span className="conv-role-pill">
                       {otherUser?.role === 'seller' ? 'Seller' : 'Buyer'}
                     </span>
+                    {isOtherOnline ? (
+                      <span className="online-badge-text" style={{ marginLeft: '0.5rem' }}>
+                        ● Online
+                      </span>
+                    ) : (
+                      <span className="offline-badge-text" style={{ marginLeft: '0.5rem' }}>
+                        Offline
+                      </span>
+                    )}
                   </h3>
                   {scrap.title && (
                     <p className="chat-header-scrap">
@@ -511,11 +582,27 @@ function ChatPage() {
                 <div className="empty-messages-placeholder">
                   <span>💬</span>
                   <p>Start the conversation regarding this scrap listing.</p>
+                  <p className="welcome-sub" style={{ fontSize: '0.85rem' }}>
+                    Ask about the scrap, quantity, price, or pickup collection details.
+                  </p>
                 </div>
               ) : (
                 messages.map((msg) => {
                   const senderId = typeof msg.sender === 'object' ? msg.sender?._id : msg.sender;
                   const isMe = senderId === user._id;
+
+                  if (msg.messageType === 'SYSTEM') {
+                    return (
+                      <div key={msg._id} className="system-message-wrapper">
+                        <div className="system-message-card">
+                          <span>📢</span> {msg.text}
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  const isRead = msg.status === 'read' || msg.isRead;
+                  const isDelivered = msg.status === 'delivered';
 
                   return (
                     <div key={msg._id} className={`message-bubble-wrapper ${isMe ? 'outgoing' : 'incoming'}`}>
@@ -524,8 +611,11 @@ function ChatPage() {
                         <div className="message-meta">
                           <span className="message-time">{formatMsgTime(msg.createdAt)}</span>
                           {isMe && (
-                            <span className="message-status-ticks">
-                              {msg.isRead ? ' ✓✓' : ' ✓'}
+                            <span
+                              className={`message-status-ticks ${isRead ? 'read' : ''}`}
+                              title={isRead ? 'Read' : isDelivered ? 'Delivered' : 'Sent'}
+                            >
+                              {isRead ? ' ✓✓' : isDelivered ? ' ✓✓' : ' ✓'}
                             </span>
                           )}
                         </div>
@@ -551,12 +641,14 @@ function ChatPage() {
 
             {/* Input Footer */}
             <form className="chat-input-footer" onSubmit={handleSend}>
-              <input
-                type="text"
-                className="chat-text-input"
-                placeholder="Type a message..."
+              <textarea
+                className="chat-text-input chat-textarea"
+                placeholder="Type your message... (Enter to send, Shift+Enter for new line)"
                 value={inputText}
                 onChange={handleInputChange}
+                onKeyDown={handleKeyDown}
+                rows={1}
+                maxLength={2000}
               />
               <button type="submit" className="btn-primary chat-send-btn" disabled={!inputText.trim() || sending}>
                 Send ✈️

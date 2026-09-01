@@ -524,6 +524,12 @@ export const api = {
       body: JSON.stringify(preferences),
     });
   },
+
+  getUnreadChatCount: async () => {
+    return await request('/conversations/unread-count', {
+      method: 'GET',
+    });
+  },
 };
 
 export default api;
