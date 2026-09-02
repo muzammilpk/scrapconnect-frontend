@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import Navbar from '../components/Navbar';
+import usePageTitle from '../hooks/usePageTitle';
 import api from '../services/api';
 
 function MyDealsPage() {
+  usePageTitle('My Deals');
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -58,27 +61,7 @@ function MyDealsPage() {
   return (
     <div className="dashboard-container">
       {/* Navbar */}
-      <header className="navbar">
-        <div className="navbar-brand" onClick={() => navigate(user?.role === 'buyer' ? '/buyer/dashboard' : '/seller/dashboard')} style={{ cursor: 'pointer' }}>
-          <span>♻️</span> ScrapConnect
-        </div>
-
-        <div className="user-badge">
-          <button
-            className="btn-secondary"
-            onClick={() => navigate(user?.role === 'buyer' ? '/buyer/dashboard' : '/seller/dashboard')}
-          >
-            ← Back to Dashboard
-          </button>
-          <div className="user-info">
-            <div className="user-name">{user?.name}</div>
-            <span className="role-tag">{user?.role === 'buyer' ? 'Buyer 🛒' : 'Seller ♻️'}</span>
-          </div>
-          <button className="btn-logout" onClick={logout}>
-            Logout
-          </button>
-        </div>
-      </header>
+      <Navbar />
 
       {/* Main Content */}
       <main className="dashboard-content">

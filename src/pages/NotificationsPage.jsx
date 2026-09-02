@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import NotificationBell from '../components/NotificationBell';
+import Navbar from '../components/Navbar';
+import usePageTitle from '../hooks/usePageTitle';
 import api from '../services/api';
 import { getSocket } from '../services/socketService';
 
 function NotificationsPage() {
+  usePageTitle('Notifications');
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -61,18 +63,17 @@ function NotificationsPage() {
         setUnreadCount((prev) => Math.max(0, prev - 1));
       }
     } catch (err) {
-      setErrorMsg(err.message || 'Failed to mark notification as read.');
+      console.error('Failed to mark notification read:', err);
     }
   };
 
-  const handleMarkAllRead = async () => {
+  const handleMarkAllAsRead = async () => {
     try {
       const res = await api.markAllNotificationsAsRead();
       if (res.success) {
         setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
         setUnreadCount(0);
         setSuccessMsg('All notifications marked as read.');
-        setTimeout(() => setSuccessMsg(''), 3000);
       }
     } catch (err) {
       setErrorMsg(err.message || 'Failed to mark all as read.');
@@ -156,34 +157,7 @@ function NotificationsPage() {
   return (
     <div className="dashboard-container">
       {/* Top Navbar */}
-      <header className="navbar">
-        <div
-          className="navbar-brand"
-          onClick={() => navigate(user?.role === 'buyer' ? '/buyer/dashboard' : '/seller/dashboard')}
-          style={{ cursor: 'pointer' }}
-        >
-          <span>♻️</span> ScrapConnect
-        </div>
-
-        <div className="user-badge">
-          {user?.role === 'buyer' && (
-            <button className="btn-secondary" onClick={() => navigate('/buyer/browse')}>
-              🔍 Browse Scrap
-            </button>
-          )}
-          <NotificationBell />
-          <button className="btn-secondary" onClick={() => navigate('/profile')}>
-            👤 Profile
-          </button>
-          <div className="user-info">
-            <div className="user-name">{user?.name}</div>
-            <span className="role-tag">{user?.role === 'buyer' ? 'Buyer 🛒' : 'Seller ♻️'}</span>
-          </div>
-          <button className="btn-logout" onClick={logout}>
-            Logout
-          </button>
-        </div>
-      </header>
+      <Navbar />
 
       {/* Main Content */}
       <main className="dashboard-content">

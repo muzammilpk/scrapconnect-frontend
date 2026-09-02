@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import NotificationBell from '../components/NotificationBell';
+import Navbar from '../components/Navbar';
+import usePageTitle from '../hooks/usePageTitle';
 import api from '../services/api';
 import { getSocket } from '../services/socketService';
 
 function ConversationsPage() {
+  usePageTitle('Messages');
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -61,22 +63,20 @@ function ConversationsPage() {
         });
       };
 
-      socket.on('user_online', handleUserOnline);
-      socket.on('user_offline', handleUserOffline);
+      socket.on('user:online', handleUserOnline);
+      socket.on('user:offline', handleUserOffline);
       socket.on('message:new', handleMessageNew);
-      socket.on('new_message', handleMessageNew);
 
       return () => {
-        socket.off('user_online', handleUserOnline);
-        socket.off('user_offline', handleUserOffline);
+        socket.off('user:online', handleUserOnline);
+        socket.off('user:offline', handleUserOffline);
         socket.off('message:new', handleMessageNew);
-        socket.off('new_message', handleMessageNew);
       };
     }
-  }, [user]);
+  }, [user?._id]);
 
   const getOtherParticipant = (conv) => {
-    if (!conv || !user) return { name: 'User', role: '' };
+    if (!conv || !user) return {};
     const isBuyer = conv.buyer?._id === user._id || conv.buyer === user._id;
     return isBuyer ? conv.seller : conv.buyer;
   };
@@ -114,34 +114,7 @@ function ConversationsPage() {
   return (
     <div className="dashboard-container">
       {/* Top Navbar */}
-      <header className="navbar">
-        <div
-          className="navbar-brand"
-          onClick={() => navigate(user?.role === 'buyer' ? '/buyer/dashboard' : '/seller/dashboard')}
-          style={{ cursor: 'pointer' }}
-        >
-          <span>♻️</span> ScrapConnect
-        </div>
-
-        <div className="user-badge">
-          {user?.role === 'buyer' && (
-            <button className="btn-secondary" onClick={() => navigate('/buyer/browse')}>
-              🔍 Browse Scrap
-            </button>
-          )}
-          <NotificationBell />
-          <button className="btn-secondary" onClick={() => navigate('/profile')}>
-            👤 Profile
-          </button>
-          <div className="user-info">
-            <div className="user-name">{user?.name}</div>
-            <span className="role-tag">{user?.role === 'buyer' ? 'Buyer 🛒' : 'Seller ♻️'}</span>
-          </div>
-          <button className="btn-logout" onClick={logout}>
-            Logout
-          </button>
-        </div>
-      </header>
+      <Navbar />
 
       {/* Main Content */}
       <main className="dashboard-content">

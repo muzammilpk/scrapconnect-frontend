@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import AdminSidebar from '../components/AdminSidebar';
 import StatCard from '../components/StatCard';
+import usePageTitle from '../hooks/usePageTitle';
 
 const AdminDashboard = () => {
+  usePageTitle('Admin Dashboard');
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');

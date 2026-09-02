@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import Navbar from '../components/Navbar';
+import usePageTitle from '../hooks/usePageTitle';
 import api from '../services/api';
 
 function ServiceRegionsPage() {
+  usePageTitle('Service Regions');
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -65,7 +68,7 @@ function ServiceRegionsPage() {
   const openEditModal = (region) => {
     setEditingRegion(region);
     setFormData({
-      state: region.state || '',
+      state: region.state || 'Kerala',
       district: region.district || '',
       city: region.city || '',
       area: region.area || '',
@@ -95,7 +98,7 @@ function ServiceRegionsPage() {
     setSuccessMsg('');
 
     if (!formData.state.trim() || !formData.district.trim()) {
-      setErrorMsg('State and District are required fields');
+      setErrorMsg('State and District are required');
       return;
     }
 
@@ -122,7 +125,7 @@ function ServiceRegionsPage() {
         const res = await api.updateServiceRegion(editingRegion._id, payload);
         if (res.success) {
           setSuccessMsg('Service region updated successfully!');
-          setRegions(res.data || res.serviceRegions || []);
+          setRegions(res.serviceRegions || []);
           closeModal();
         }
       } else {
@@ -162,30 +165,7 @@ function ServiceRegionsPage() {
 
   return (
     <div className="dashboard-container">
-      {/* Top Navigation */}
-      <header className="navbar">
-        <div className="navbar-brand" onClick={() => navigate('/buyer/dashboard')} style={{ cursor: 'pointer' }}>
-          <span>♻️</span> ScrapConnect
-        </div>
-
-        <div className="user-badge">
-          <button className="btn-secondary" onClick={() => navigate('/buyer/dashboard')}>
-            ← Dashboard
-          </button>
-          <button className="btn-secondary" onClick={() => navigate('/profile')}>
-            👤 Profile
-          </button>
-          <div className="user-info">
-            <div className="user-name">{user?.name}</div>
-            <span className="role-tag" style={{ background: '#E0F2FE', color: '#0369A1' }}>
-              Buyer 🛒
-            </span>
-          </div>
-          <button className="btn-logout" onClick={logout}>
-            Logout
-          </button>
-        </div>
-      </header>
+      <Navbar />
 
       {/* Main Content */}
       <main className="dashboard-content">

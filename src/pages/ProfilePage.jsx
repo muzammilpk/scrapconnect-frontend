@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import Navbar from '../components/Navbar';
+import usePageTitle from '../hooks/usePageTitle';
 import StarRating from '../components/StarRating';
 import ReviewList from '../components/ReviewList';
 import api from '../services/api';
 
 function ProfilePage() {
+  usePageTitle('Profile');
   const { user, updateProfile, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -60,45 +63,27 @@ function ProfilePage() {
       if (!user?._id) return;
       setLoading(true);
       try {
-        const [profRes, statsRes, ratingRes, revRes] = await Promise.all([
+        const [profRes, statsRes, reviewsRes] = await Promise.all([
           api.getProfile(),
-          api.getUserStats(),
-          api.getUserRatingSummary(user._id),
+          api.getUserStats(user._id),
           api.getUserReviews(user._id),
         ]);
 
-        if (profRes.success && (profRes.user || profRes.data)) {
-          const uData = profRes.user || profRes.data;
-          setFormData({
-            name: uData.name || '',
-            mobileNumber: uData.mobileNumber || '',
-            profileImage: uData.profileImage || '',
-            address: uData.address || '',
-            state: uData.location?.state || '',
-            district: uData.location?.district || '',
-            city: uData.location?.city || '',
-            area: uData.location?.area || '',
-            pincode: uData.location?.pincode || '',
+        if (profRes.success && profRes.user) {
+          setRatingSummary(profRes.user.ratingSummary || {
+            averageRating: 0,
+            totalReviews: 0,
+            distribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
           });
         }
-
         if (statsRes.success) {
-          setUserStats(statsRes.stats || statsRes.data);
+          setUserStats(statsRes.data || statsRes.stats);
         }
-
-        if (ratingRes.success) {
-          setRatingSummary({
-            averageRating: ratingRes.averageRating || 0,
-            totalReviews: ratingRes.totalReviews || 0,
-            distribution: ratingRes.distribution || { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
-          });
-        }
-
-        if (revRes.success) {
-          setReceivedReviews(revRes.reviews || []);
+        if (reviewsRes.success) {
+          setReceivedReviews(reviewsRes.reviews || []);
         }
       } catch (err) {
-        console.error('Failed to fetch profile/reviews/stats:', err.message);
+        console.error('Failed to load profile details:', err.message);
       } finally {
         setLoading(false);
       }
@@ -115,18 +100,18 @@ function ProfilePage() {
     }));
   };
 
-  const handleSubmit = async (e) => {
+  const handleSaveProfile = async (e) => {
     e.preventDefault();
-    setSuccessMsg('');
     setErrorMsg('');
+    setSuccessMsg('');
 
     if (!formData.name.trim()) {
-      setErrorMsg('Name is required');
+      setErrorMsg('Full Name is required');
       return;
     }
 
     if (formData.mobileNumber.trim()) {
-      const mobileRegex = /^[0-9]{10,15}$/;
+      const mobileRegex = /^[0-9+\s-]{10,15}$/;
       if (!mobileRegex.test(formData.mobileNumber.trim())) {
         setErrorMsg('Please enter a valid mobile number (10 to 15 digits)');
         return;
@@ -168,14 +153,6 @@ function ProfilePage() {
     }
   };
 
-  const handleDashboardNav = () => {
-    if (user?.role === 'buyer') {
-      navigate('/buyer/dashboard');
-    } else {
-      navigate('/seller/dashboard');
-    }
-  };
-
   const getAvatarInitials = (name) => {
     if (!name) return 'U';
     return name
@@ -188,50 +165,7 @@ function ProfilePage() {
 
   return (
     <div className="dashboard-container">
-      {/* Top Navbar */}
-      <header className="navbar">
-        <div className="navbar-brand" onClick={handleDashboardNav} style={{ cursor: 'pointer' }}>
-          <span>♻️</span> ScrapConnect
-        </div>
-
-        <div className="user-badge">
-          <button className="btn-secondary" onClick={handleDashboardNav}>
-            ← Dashboard
-          </button>
-          {user?.role === 'buyer' && (
-            <>
-              <button className="btn-secondary nav-link-btn" onClick={() => navigate('/buyer/browse')}>
-                🔍 Browse Scrap
-              </button>
-              <button className="btn-secondary nav-link-btn" onClick={() => navigate('/buyer/service-regions')}>
-                📍 Service Regions
-              </button>
-            </>
-          )}
-          {user?.role === 'seller' && (
-            <>
-              <button className="btn-secondary nav-link-btn" onClick={() => navigate('/seller/scraps')}>
-                📦 My Listings
-              </button>
-              <button className="btn-secondary nav-link-btn" onClick={() => navigate('/seller/add-scrap')}>
-                ➕ Add Scrap
-              </button>
-            </>
-          )}
-          <button className="btn-secondary nav-link-btn" onClick={() => navigate('/deals')}>
-            🤝 My Deals
-          </button>
-          <div className="user-info">
-            <div className="user-name">{user?.name}</div>
-            <span className={`role-tag ${user?.role}`}>
-              {user?.role === 'buyer' ? 'Buyer 🛒' : 'Seller ♻️'}
-            </span>
-          </div>
-          <button className="btn-logout" onClick={logout}>
-            Logout
-          </button>
-        </div>
-      </header>
+      <Navbar />
 
       {/* Main Profile Content */}
       <main className="dashboard-content">

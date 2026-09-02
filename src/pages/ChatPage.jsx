@@ -1,12 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import Navbar from '../components/Navbar';
+import usePageTitle from '../hooks/usePageTitle';
 import { getSocket } from '../services/socketService';
 import OfferCard from '../components/OfferCard';
 import MakeOfferModal from '../components/MakeOfferModal';
 import api from '../services/api';
 
 function ChatPage() {
+  usePageTitle('Chat');
   const { id: conversationId } = useParams();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -395,24 +398,7 @@ function ChatPage() {
   return (
     <div className="dashboard-container chat-layout-container">
       {/* Top Navbar */}
-      <header className="navbar">
-        <div className="navbar-brand" onClick={() => navigate('/conversations')} style={{ cursor: 'pointer' }}>
-          <span>♻️</span> ScrapConnect
-        </div>
-
-        <div className="user-badge">
-          <button className="btn-secondary" onClick={() => navigate('/conversations')}>
-            ← Back to Messages
-          </button>
-          <div className="user-info">
-            <div className="user-name">{user?.name}</div>
-            <span className="role-tag">{user?.role === 'buyer' ? 'Buyer 🛒' : 'Seller ♻️'}</span>
-          </div>
-          <button className="btn-logout" onClick={logout}>
-            Logout
-          </button>
-        </div>
-      </header>
+      <Navbar />
 
       {/* Main Chat Area */}
       <main className="dashboard-content chat-main-content">

@@ -1,12 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import Navbar from '../components/Navbar';
+import usePageTitle from '../hooks/usePageTitle';
 import api from '../services/api';
 import ScrapCard from '../components/ScrapCard';
 import ScrapFilters from '../components/ScrapFilters';
 import ScrapCardSkeleton from '../components/ScrapCardSkeleton';
 
 function BrowseScrapPage() {
+  usePageTitle('Marketplace');
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -130,32 +133,7 @@ function BrowseScrapPage() {
   return (
     <div className="dashboard-container">
       {/* Top Navbar */}
-      <header className="navbar">
-        <div className="navbar-brand" onClick={() => navigate('/buyer/dashboard')} style={{ cursor: 'pointer' }}>
-          <span>♻️</span> ScrapConnect
-        </div>
-
-        <div className="user-badge">
-          <button className="btn-secondary" onClick={() => navigate('/buyer/dashboard')}>
-            ← Dashboard
-          </button>
-          <button className="btn-secondary" onClick={() => navigate('/buyer/service-regions')}>
-            📍 Service Regions
-          </button>
-          <button className="btn-secondary" onClick={() => navigate('/profile')}>
-            👤 Profile
-          </button>
-          <div className="user-info">
-            <div className="user-name">{user?.name}</div>
-            <span className="role-tag" style={{ background: '#E0F2FE', color: '#0369A1' }}>
-              Buyer 🛒
-            </span>
-          </div>
-          <button className="btn-logout" onClick={logout}>
-            Logout
-          </button>
-        </div>
-      </header>
+      <Navbar />
 
       {/* Main Content */}
       <main className="dashboard-content">

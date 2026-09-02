@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import Navbar from '../components/Navbar';
+import usePageTitle from '../hooks/usePageTitle';
 import api from '../services/api';
 
 const SCRAP_CATEGORIES = [
@@ -18,6 +20,7 @@ const SCRAP_CATEGORIES = [
 ];
 
 function AddScrapPage() {
+  usePageTitle('Sell Scrap');
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -61,22 +64,9 @@ function AddScrapPage() {
       return;
     }
 
-    // Validate size and mime type
-    for (const file of files) {
-      if (file.size > 5 * 1024 * 1024) {
-        setErrorMsg(`File "${file.name}" exceeds the 5MB size limit.`);
-        return;
-      }
-      if (!['image/jpeg', 'image/jpg', 'image/png', 'image/webp'].includes(file.type)) {
-        setErrorMsg(`File "${file.name}" is not a supported format (JPEG, PNG, WEBP allowed).`);
-        return;
-      }
-    }
-
-    setErrorMsg('');
-    setUploadingImages(true);
-
     try {
+      setUploadingImages(true);
+      setErrorMsg('');
       const uploadData = new FormData();
       files.forEach((file) => {
         uploadData.append('images', file);
@@ -94,17 +84,22 @@ function AddScrapPage() {
     }
   };
 
-  const removeImage = (index) => {
-    setUploadedImages((prev) => prev.filter((_, i) => i !== index));
+  const handleRemoveImage = (indexToRemove) => {
+    setUploadedImages((prev) => prev.filter((_, idx) => idx !== indexToRemove));
   };
 
-  const handleSaveListing = async (e, targetStatus = 'available') => {
-    if (e) e.preventDefault();
+  const handleSubmit = async (e, targetStatus = 'available') => {
+    e.preventDefault();
     if (submitting) return; // Prevent duplicate clicks
     setErrorMsg('');
 
     if (!formData.title.trim()) {
-      setErrorMsg('Please enter a scrap title');
+      setErrorMsg('Scrap title is required.');
+      return;
+    }
+
+    if (!formData.category) {
+      setErrorMsg('Please select a scrap category.');
       return;
     }
 
@@ -118,8 +113,8 @@ function AddScrapPage() {
       return;
     }
 
-    if (!formData.state.trim() || !formData.district.trim() || !formData.city.trim()) {
-      setErrorMsg('State, District, and City are required for scrap location');
+    if (!formData.district.trim() || !formData.city.trim()) {
+      setErrorMsg('District and City/Town location fields are required.');
       return;
     }
 
@@ -160,30 +155,7 @@ function AddScrapPage() {
   return (
     <div className="dashboard-container">
       {/* Top Navbar */}
-      <header className="navbar">
-        <div className="navbar-brand" onClick={() => navigate('/seller/dashboard')} style={{ cursor: 'pointer' }}>
-          <span>♻️</span> ScrapConnect
-        </div>
-
-        <div className="user-badge">
-          <button className="btn-secondary" onClick={() => navigate('/seller/dashboard')}>
-            ← Dashboard
-          </button>
-          <button className="btn-secondary" onClick={() => navigate('/seller/scraps')}>
-            📦 My Listings
-          </button>
-          <button className="btn-secondary" onClick={() => navigate('/profile')}>
-            👤 Profile
-          </button>
-          <div className="user-info">
-            <div className="user-name">{user?.name}</div>
-            <span className="role-tag">Seller ♻️</span>
-          </div>
-          <button className="btn-logout" onClick={logout}>
-            Logout
-          </button>
-        </div>
-      </header>
+      <Navbar />
 
       {/* Main Form Content */}
       <main className="dashboard-content">
