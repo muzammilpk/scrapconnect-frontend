@@ -84,10 +84,12 @@ export const AuthProvider = ({ children }) => {
     setError(null);
     try {
       const response = await api.updateProfile(profileData);
-      if (response.success && response.user) {
-        setUser(response.user);
-        return response;
+      const updatedUser = response.user || response.data;
+      if (response.success && updatedUser) {
+        setUser(updatedUser);
+        return { success: true, user: updatedUser, message: response.message || 'Profile updated successfully' };
       }
+      return response || { success: false, message: 'Failed to update profile' };
     } catch (err) {
       setError(err.message || 'Failed to update profile.');
       throw err;

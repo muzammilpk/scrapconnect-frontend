@@ -107,7 +107,7 @@ function MyDealsPage() {
             <h3>No Deals Found</h3>
             <p>You don't have any deals matching this filter.</p>
             {user?.role === 'buyer' && (
-              <button className="btn-primary" style={{ marginTop: '1rem' }} onClick={() => navigate('/buyer/marketplace')}>
+              <button className="btn-primary" style={{ marginTop: '1rem' }} onClick={() => navigate('/buyer/browse')}>
                 Browse Scrap Marketplace
               </button>
             )}

@@ -3,9 +3,13 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 
+import Navbar from '../components/Navbar';
+import usePageTitle from '../hooks/usePageTitle';
+
 function BuyerScrapDetailPage() {
+  usePageTitle('Scrap Listing Details');
   const { id } = useParams();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   const [scrap, setScrap] = useState(null);
@@ -34,14 +38,14 @@ function BuyerScrapDetailPage() {
     fetchScrapDetail();
   }, [id]);
 
-  const handleContactClick = async () => {
+  const handleContactClick = async (openOffer = false) => {
     if (!scrap || startingChat) return;
     setStartingChat(true);
     setErrorMsg('');
     try {
       const res = await api.createOrGetConversation(scrap._id);
       if (res.success && res.conversation) {
-        navigate(`/chat/${res.conversation._id}`);
+        navigate(`/chat/${res.conversation._id}`, { state: { openOfferModal: openOffer } });
       }
     } catch (err) {
       setErrorMsg(err.message || 'Failed to start chat conversation with seller');
@@ -62,32 +66,7 @@ function BuyerScrapDetailPage() {
   return (
     <div className="dashboard-container">
       {/* Top Navbar */}
-      <header className="navbar">
-        <div className="navbar-brand" onClick={() => navigate('/buyer/dashboard')} style={{ cursor: 'pointer' }}>
-          <span>♻️</span> ScrapConnect
-        </div>
-
-        <div className="user-badge">
-          <button className="btn-secondary" onClick={() => navigate('/buyer/browse')}>
-            ← Back to Marketplace
-          </button>
-          <button className="btn-secondary" onClick={() => navigate('/buyer/service-regions')}>
-            📍 Service Regions
-          </button>
-          <button className="btn-secondary" onClick={() => navigate('/profile')}>
-            👤 Profile
-          </button>
-          <div className="user-info">
-            <div className="user-name">{user?.name}</div>
-            <span className="role-tag" style={{ background: '#E0F2FE', color: '#0369A1' }}>
-              Buyer 🛒
-            </span>
-          </div>
-          <button className="btn-logout" onClick={logout}>
-            Logout
-          </button>
-        </div>
-      </header>
+      <Navbar />
 
       {/* Main Content */}
       <main className="dashboard-content">
@@ -236,7 +215,7 @@ function BuyerScrapDetailPage() {
                       <button
                         className="btn-primary btn-lg"
                         style={{ flex: 1 }}
-                        onClick={handleContactClick}
+                        onClick={() => handleContactClick(false)}
                         disabled={startingChat}
                       >
                         {startingChat ? 'Starting Chat...' : '💬 Contact Seller'}
@@ -244,7 +223,7 @@ function BuyerScrapDetailPage() {
                       <button
                         className="btn-secondary btn-lg"
                         style={{ flex: 1, borderColor: '#16A34A', color: '#16A34A' }}
-                        onClick={handleContactClick}
+                        onClick={() => handleContactClick(true)}
                         disabled={startingChat}
                       >
                         🏷️ Make Offer

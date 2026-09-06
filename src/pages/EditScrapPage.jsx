@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import Navbar from '../components/Navbar';
+import usePageTitle from '../hooks/usePageTitle';
 import api from '../services/api';
+import { getStates, getDistricts, getCities } from '../utils/locationData';
 
 const SCRAP_CATEGORIES = [
   'Paper',
@@ -18,8 +21,9 @@ const SCRAP_CATEGORIES = [
 ];
 
 function EditScrapPage() {
+  usePageTitle('Edit Scrap Listing');
   const { id } = useParams();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
@@ -37,12 +41,15 @@ function EditScrapPage() {
     weightUnit: 'kg',
     expectedPrice: '',
     status: 'available',
-    state: '',
-    district: '',
-    city: '',
+    state: 'Kerala',
+    district: 'Kottayam',
+    city: 'Kottayam Town',
     area: '',
     pincode: '',
   });
+
+  const [isCustomState, setIsCustomState] = useState(false);
+  const [isCustomCity, setIsCustomCity] = useState(false);
 
   useEffect(() => {
     const fetchScrap = async () => {
@@ -52,6 +59,13 @@ function EditScrapPage() {
         if (res.success && res.scrap) {
           const s = res.scrap;
           setInitialStatus(s.status || 'available');
+          const stateVal = s.location?.state || 'Kerala';
+          const distVal = s.location?.district || 'Kottayam';
+          const cityVal = s.location?.city || '';
+
+          const knownStates = getStates();
+          const isKnownState = knownStates.includes(stateVal);
+
           setFormData({
             title: s.title || '',
             category: s.category || 'Metal',
@@ -60,12 +74,15 @@ function EditScrapPage() {
             weightUnit: s.weightUnit || 'kg',
             expectedPrice: s.expectedPrice !== undefined && s.expectedPrice !== null ? s.expectedPrice : '',
             status: s.status || 'available',
-            state: s.location?.state || '',
-            district: s.location?.district || '',
-            city: s.location?.city || '',
+            state: isKnownState ? stateVal : (stateVal ? stateVal : 'Kerala'),
+            district: distVal || (isKnownState ? getDistricts(stateVal)[0] || '' : ''),
+            city: cityVal,
             area: s.location?.area || '',
             pincode: s.location?.pincode || '',
           });
+          if (stateVal && !isKnownState) {
+            setIsCustomState(true);
+          }
           setUploadedImages(s.images || []);
         }
       } catch (err) {
@@ -85,6 +102,37 @@ function EditScrapPage() {
     setFormData((prev) => ({
       ...prev,
       [name]: value,
+    }));
+  };
+
+  const handleStateSelect = (e) => {
+    const selectedState = e.target.value;
+    if (selectedState === 'Other / Custom') {
+      setIsCustomState(true);
+      setFormData((prev) => ({ ...prev, state: '', district: '', city: '' }));
+    } else {
+      setIsCustomState(false);
+      const districts = getDistricts(selectedState);
+      const firstDistrict = districts[0] || '';
+      const cities = getCities(selectedState, firstDistrict);
+      const firstCity = cities[0] || '';
+      setFormData((prev) => ({
+        ...prev,
+        state: selectedState,
+        district: firstDistrict,
+        city: firstCity,
+      }));
+    }
+  };
+
+  const handleDistrictSelect = (e) => {
+    const selectedDistrict = e.target.value;
+    const cities = getCities(formData.state, selectedDistrict);
+    const firstCity = cities[0] || '';
+    setFormData((prev) => ({
+      ...prev,
+      district: selectedDistrict,
+      city: firstCity,
     }));
   };
 
@@ -151,6 +199,11 @@ function EditScrapPage() {
       return;
     }
 
+    if (!formData.state.trim() || !formData.district.trim() || !formData.city.trim()) {
+      setErrorMsg('State, District, and City/Town location fields are required.');
+      return;
+    }
+
     setSubmitting(true);
     try {
       const payload = {
@@ -182,34 +235,18 @@ function EditScrapPage() {
     }
   };
 
+  const stateList = getStates();
+  const districtList = getDistricts(formData.state);
+  const cityList = getCities(formData.state, formData.district);
+
   return (
     <div className="dashboard-container">
       {/* Top Navbar */}
-      <header className="navbar">
-        <div className="navbar-brand" onClick={() => navigate('/seller/dashboard')} style={{ cursor: 'pointer' }}>
-          <span>♻️</span> ScrapConnect
-        </div>
-
-        <div className="user-badge">
-          <button className="btn-secondary" onClick={() => navigate('/seller/scraps')}>
-            ← My Listings
-          </button>
-          <button className="btn-secondary" onClick={() => navigate('/profile')}>
-            👤 Profile
-          </button>
-          <div className="user-info">
-            <div className="user-name">{user?.name}</div>
-            <span className="role-tag">Seller ♻️</span>
-          </div>
-          <button className="btn-logout" onClick={logout}>
-            Logout
-          </button>
-        </div>
-      </header>
+      <Navbar />
 
       {/* Main Content */}
       <main className="dashboard-content">
-        <div className="form-page-container">
+        <div className="form-page-container" style={{ maxWidth: '850px' }}>
           <div className="form-header">
             <h1 className="welcome-title">✏️ Edit Scrap Listing</h1>
             <p className="welcome-sub">Update scrap details, weight, price, status, or photos</p>
@@ -258,6 +295,7 @@ function EditScrapPage() {
                       value={formData.category}
                       onChange={handleChange}
                       disabled={isRestricted}
+                      style={{ fontWeight: 600 }}
                       required
                     >
                       {SCRAP_CATEGORIES.map((cat) => (
@@ -278,6 +316,7 @@ function EditScrapPage() {
                       className="form-input form-select"
                       value={formData.status}
                       onChange={handleChange}
+                      style={{ fontWeight: 600 }}
                       required
                     >
                       <option value="available">Available 🟢</option>
@@ -307,20 +346,26 @@ function EditScrapPage() {
               <div className="form-section-card">
                 <h3 className="section-card-title">⚖️ Weight & Pricing</h3>
 
-                <div className="form-row">
+                <div className="form-row three-col">
                   <div className="form-group">
                     <label className="form-label" htmlFor="estimatedWeight">
-                      Estimated Weight / Quantity (Optional)
+                      Estimated Weight / Quantity
                     </label>
                     <input
                       id="estimatedWeight"
-                      type="number"
-                      step="0.01"
+                      type="text"
+                      inputMode="decimal"
                       name="estimatedWeight"
                       className="form-input"
                       value={formData.estimatedWeight}
-                      onChange={handleChange}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                          setFormData((prev) => ({ ...prev, estimatedWeight: val }));
+                        }
+                      }}
                       disabled={isRestricted}
+                      placeholder="e.g. 50"
                     />
                   </div>
 
@@ -335,6 +380,7 @@ function EditScrapPage() {
                       value={formData.weightUnit}
                       onChange={handleChange}
                       disabled={isRestricted}
+                      style={{ fontWeight: 600 }}
                     >
                       <option value="kg">Kilograms (kg)</option>
                       <option value="ton">Tons</option>
@@ -345,17 +391,23 @@ function EditScrapPage() {
 
                   <div className="form-group">
                     <label className="form-label" htmlFor="expectedPrice">
-                      Expected Price (₹ INR, Optional)
+                      Expected Price (₹ INR)
                     </label>
                     <input
                       id="expectedPrice"
-                      type="number"
-                      step="1"
+                      type="text"
+                      inputMode="numeric"
                       name="expectedPrice"
                       className="form-input"
                       value={formData.expectedPrice}
-                      onChange={handleChange}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === '' || /^\d*$/.test(val)) {
+                          setFormData((prev) => ({ ...prev, expectedPrice: val }));
+                        }
+                      }}
                       disabled={isRestricted}
+                      placeholder="e.g. 5000"
                     />
                   </div>
                 </div>
@@ -409,7 +461,150 @@ function EditScrapPage() {
 
               {/* Section 4: Location */}
               <div className="form-section-card">
-                <h3 className="section-card-title">📍 Location</h3>
+                <h3 className="section-card-title">📍 Scrap Pickup Location (State, District & City)</h3>
+
+                <div className="form-row three-col">
+                  {/* 1. STATE SELECTOR */}
+                  <div className="form-group">
+                    <label className="form-label" htmlFor="state">
+                      1. Select State <span className="required-star">*</span>
+                    </label>
+                    {!isCustomState ? (
+                      <select
+                        id="state-select"
+                        className="form-input"
+                        value={formData.state}
+                        onChange={handleStateSelect}
+                        disabled={isRestricted}
+                        style={{ fontWeight: 600 }}
+                        required
+                      >
+                        {stateList.map((st) => (
+                          <option key={st} value={st}>
+                            {st}
+                          </option>
+                        ))}
+                        <option value="Other / Custom">➕ Other / Custom State...</option>
+                      </select>
+                    ) : (
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <input
+                          id="state"
+                          type="text"
+                          name="state"
+                          className="form-input"
+                          value={formData.state}
+                          onChange={handleChange}
+                          disabled={isRestricted}
+                          placeholder="Type State name..."
+                          required
+                        />
+                        {!isRestricted && (
+                          <button
+                            type="button"
+                            className="btn-secondary"
+                            onClick={() => setIsCustomState(false)}
+                            style={{ whiteSpace: 'nowrap', fontSize: '0.8rem' }}
+                          >
+                            List
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 2. DISTRICT SELECTOR */}
+                  <div className="form-group">
+                    <label className="form-label" htmlFor="district">
+                      2. Select District <span className="required-star">*</span>
+                    </label>
+                    {!isCustomState && districtList.length > 0 ? (
+                      <select
+                        id="district-select"
+                        className="form-input"
+                        value={formData.district}
+                        onChange={handleDistrictSelect}
+                        disabled={isRestricted}
+                        style={{ fontWeight: 600 }}
+                        required
+                      >
+                        {districtList.map((dst) => (
+                          <option key={dst} value={dst}>
+                            {dst}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        id="district"
+                        type="text"
+                        name="district"
+                        className="form-input"
+                        value={formData.district}
+                        onChange={handleChange}
+                        disabled={isRestricted}
+                        placeholder="Type District name..."
+                        required
+                      />
+                    )}
+                  </div>
+
+                  {/* 3. CITY / TOWN SELECTOR */}
+                  <div className="form-group">
+                    <label className="form-label" htmlFor="city">
+                      3. Select City / Town <span className="required-star">*</span>
+                    </label>
+                    {!isCustomState && cityList.length > 0 && !isCustomCity ? (
+                      <select
+                        id="city-select"
+                        className="form-input"
+                        value={formData.city}
+                        onChange={(e) => {
+                          if (e.target.value === 'Other / Custom City') {
+                            setIsCustomCity(true);
+                            setFormData((prev) => ({ ...prev, city: '' }));
+                          } else {
+                            setFormData((prev) => ({ ...prev, city: e.target.value }));
+                          }
+                        }}
+                        disabled={isRestricted}
+                        style={{ fontWeight: 600 }}
+                        required
+                      >
+                        {cityList.map((ct) => (
+                          <option key={ct} value={ct}>
+                            {ct}
+                          </option>
+                        ))}
+                        <option value="Other / Custom City">➕ Other / Custom City...</option>
+                      </select>
+                    ) : (
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <input
+                          id="city"
+                          type="text"
+                          name="city"
+                          className="form-input"
+                          value={formData.city}
+                          onChange={handleChange}
+                          disabled={isRestricted}
+                          placeholder="Type City / Town name..."
+                          required
+                        />
+                        {!isCustomState && cityList.length > 0 && !isRestricted && (
+                          <button
+                            type="button"
+                            className="btn-secondary"
+                            onClick={() => setIsCustomCity(false)}
+                            style={{ whiteSpace: 'nowrap', fontSize: '0.8rem' }}
+                          >
+                            List
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
 
                 <div className="form-row">
                   <div className="form-group">
@@ -424,56 +619,7 @@ function EditScrapPage() {
                       value={formData.area}
                       onChange={handleChange}
                       disabled={isRestricted}
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label" htmlFor="city">
-                      City / Town <span className="required-star">*</span>
-                    </label>
-                    <input
-                      id="city"
-                      type="text"
-                      name="city"
-                      className="form-input"
-                      value={formData.city}
-                      onChange={handleChange}
-                      disabled={isRestricted}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="form-row three-col">
-                  <div className="form-group">
-                    <label className="form-label" htmlFor="district">
-                      District <span className="required-star">*</span>
-                    </label>
-                    <input
-                      id="district"
-                      type="text"
-                      name="district"
-                      className="form-input"
-                      value={formData.district}
-                      onChange={handleChange}
-                      disabled={isRestricted}
-                      required
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label" htmlFor="state">
-                      State <span className="required-star">*</span>
-                    </label>
-                    <input
-                      id="state"
-                      type="text"
-                      name="state"
-                      className="form-input"
-                      value={formData.state}
-                      onChange={handleChange}
-                      disabled={isRestricted}
-                      required
+                      placeholder="e.g. Town Center"
                     />
                   </div>
 
@@ -484,11 +630,18 @@ function EditScrapPage() {
                     <input
                       id="pincode"
                       type="text"
+                      inputMode="numeric"
                       name="pincode"
                       className="form-input"
                       value={formData.pincode}
-                      onChange={handleChange}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === '' || /^\d*$/.test(val)) {
+                          setFormData((prev) => ({ ...prev, pincode: val }));
+                        }
+                      }}
                       disabled={isRestricted}
+                      placeholder="e.g. 686001"
                     />
                   </div>
                 </div>

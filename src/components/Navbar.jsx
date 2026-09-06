@@ -40,6 +40,12 @@ function Navbar() {
               {user?.role === 'buyer' && (
                 <>
                   <button
+                    className={`nav-btn ${isLinkActive('/buyer/dashboard') ? 'active' : ''}`}
+                    onClick={() => navigate('/buyer/dashboard')}
+                  >
+                    📊 Dashboard
+                  </button>
+                  <button
                     className={`nav-btn ${isLinkActive('/buyer/browse') ? 'active' : ''}`}
                     onClick={() => navigate('/buyer/browse')}
                   >

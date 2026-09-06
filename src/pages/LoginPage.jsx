@@ -47,7 +47,7 @@ function LoginPage() {
 
   return (
     <div className="auth-wrapper">
-      <div className="auth-card">
+      <div className="auth-card glass-auth-card">
         <div className="brand-header">
           <div className="brand-logo">
             <span className="brand-logo-icon">♻️</span>
@@ -56,8 +56,8 @@ function LoginPage() {
           <p className="brand-tagline">Connect. Sell. Recycle.</p>
         </div>
 
-        <h2 style={{ fontSize: '1.4rem', marginBottom: '1.25rem', textAlign: 'center' }}>
-          Sign In to Your Account
+        <h2 style={{ fontSize: '1.35rem', marginBottom: '1.25rem', textAlign: 'center' }}>
+          Welcome Back
         </h2>
 
         {errorMsg && <div className="alert-error">{errorMsg}</div>}
@@ -67,22 +67,30 @@ function LoginPage() {
             <label className="form-label" htmlFor="identifier">
               Email or Mobile Number
             </label>
-            <input
-              id="identifier"
-              type="text"
-              className="form-input"
-              placeholder="e.g. seller@example.com or 9876543210"
-              value={identifier}
-              onChange={(e) => setIdentifier(e.target.value)}
-              autoComplete="username"
-              required
-            />
+            <div className="input-with-icon">
+              <span className="input-icon">👤</span>
+              <input
+                id="identifier"
+                type="text"
+                className="form-input icon-padded"
+                placeholder="e.g. seller@example.com or 9876543210"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
+                autoComplete="username"
+                required
+              />
+            </div>
           </div>
 
           <div className="form-group">
-            <label className="form-label" htmlFor="password">
-              Password
-            </label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+              <label className="form-label" htmlFor="password" style={{ marginBottom: 0 }}>
+                Password
+              </label>
+              <Link to="/forgot-password" className="forgot-password-link">
+                Forgot password?
+              </Link>
+            </div>
             <div className="password-input-wrapper">
               <input
                 id="password"
@@ -106,7 +114,7 @@ function LoginPage() {
           </div>
 
           <button type="submit" className="btn-primary" disabled={isSubmitting}>
-            {isSubmitting ? 'Signing in...' : 'Sign In'}
+            {isSubmitting ? 'Signing in...' : 'Sign In 🚀'}
           </button>
         </form>
 
@@ -122,3 +130,4 @@ function LoginPage() {
 }
 
 export default LoginPage;
+

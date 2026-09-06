@@ -3,9 +3,13 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 
+import Navbar from '../components/Navbar';
+import usePageTitle from '../hooks/usePageTitle';
+
 function ScrapDetailPage() {
+  usePageTitle('Scrap Listing Details');
   const { id } = useParams();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   const [scrap, setScrap] = useState(null);
@@ -19,9 +23,11 @@ function ScrapDetailPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  // Matching buyers state
+  // Matching buyers & buyer conversations state
   const [matchingBuyers, setMatchingBuyers] = useState([]);
   const [loadingBuyers, setLoadingBuyers] = useState(false);
+  const [scrapConversations, setScrapConversations] = useState([]);
+  const [loadingConvs, setLoadingConvs] = useState(false);
 
   useEffect(() => {
     const fetchScrapDetail = async () => {
@@ -31,18 +37,30 @@ function ScrapDetailPage() {
         if (res.success && res.scrap) {
           setScrap(res.scrap);
 
-          // Fetch matching buyers if logged in user is the seller owner
+          // Fetch matching buyers & buyer conversations if logged in user is the seller owner
           if (user && (res.scrap.seller?._id === user._id || res.scrap.seller === user._id)) {
             setLoadingBuyers(true);
+            setLoadingConvs(true);
             try {
-              const matchRes = await api.getMatchingBuyers(id);
+              const [matchRes, convsRes] = await Promise.all([
+                api.getMatchingBuyers(id),
+                api.getConversations(),
+              ]);
               if (matchRes.success) {
                 setMatchingBuyers(matchRes.buyers || []);
               }
+              if (convsRes.success) {
+                const filtered = (convsRes.conversations || []).filter((c) => {
+                  const sId = typeof c.scrap === 'object' ? c.scrap?._id : c.scrap;
+                  return String(sId) === String(id);
+                });
+                setScrapConversations(filtered);
+              }
             } catch (mErr) {
-              console.error('Failed to fetch matching buyers:', mErr.message);
+              console.error('Failed to fetch scrap interactions:', mErr.message);
             } finally {
               setLoadingBuyers(false);
+              setLoadingConvs(false);
             }
           }
         }
@@ -87,27 +105,7 @@ function ScrapDetailPage() {
   return (
     <div className="dashboard-container">
       {/* Top Navbar */}
-      <header className="navbar">
-        <div className="navbar-brand" onClick={() => navigate('/seller/dashboard')} style={{ cursor: 'pointer' }}>
-          <span>♻️</span> ScrapConnect
-        </div>
-
-        <div className="user-badge">
-          <button className="btn-secondary" onClick={() => navigate('/seller/scraps')}>
-            ← Back to Listings
-          </button>
-          <button className="btn-secondary" onClick={() => navigate('/profile')}>
-            👤 Profile
-          </button>
-          <div className="user-info">
-            <div className="user-name">{user?.name}</div>
-            <span className="role-tag">Seller ♻️</span>
-          </div>
-          <button className="btn-logout" onClick={logout}>
-            Logout
-          </button>
-        </div>
-      </header>
+      <Navbar />
 
       {/* Main Content */}
       <main className="dashboard-content">
@@ -231,6 +229,71 @@ function ScrapDetailPage() {
                     <span>Created:</span> <span>{formatDate(scrap.createdAt)}</span>
                   </div>
                 </div>
+
+                {/* Buyer Conversations & Offers Section (Seller Owner Only) */}
+                {isOwner && (
+                  <div className="detail-section enquiries-section" style={{ background: '#F8FAFC', padding: '1.25rem', borderRadius: '12px', border: '1px solid #E2E8F0', marginBottom: '1.25rem' }}>
+                    <h4 className="section-heading" style={{ color: '#0F172A', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                      <span>💬</span> Interested Buyer Enquiries & Price Offers ({scrapConversations.length})
+                    </h4>
+
+                    {loadingConvs ? (
+                      <p className="detail-text text-muted">Loading buyer enquiries...</p>
+                    ) : scrapConversations.length === 0 ? (
+                      <div className="matching-empty-box" style={{ padding: '0.75rem 1rem', background: '#FFFFFF', borderRadius: '8px', border: '1px dashed #CBD5E1' }}>
+                        <p className="detail-text text-muted" style={{ margin: 0, fontSize: '0.9rem' }}>
+                          No buyer has started a chat or sent an offer for this scrap item yet.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="buyer-enquiries-list" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                        {scrapConversations.map((c) => {
+                          const buyerObj = c.buyer || {};
+                          return (
+                            <div
+                              key={c._id}
+                              className="buyer-enquiry-card"
+                              style={{
+                                background: '#FFFFFF',
+                                border: '1px solid #CBD5E1',
+                                borderRadius: '10px',
+                                padding: '0.85rem 1rem',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                gap: '1rem',
+                                boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                              }}
+                            >
+                              <div>
+                                <div style={{ fontWeight: '700', fontSize: '0.95rem', color: '#1E293B', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                  👤 {buyerObj.name || 'Interested Buyer'}
+                                  {c.unreadCount > 0 && (
+                                    <span className="unread-dot-badge" style={{ fontSize: '0.75rem', padding: '2px 6px' }}>
+                                      {c.unreadCount} NEW
+                                    </span>
+                                  )}
+                                </div>
+                                <p style={{ fontSize: '0.85rem', color: '#64748B', margin: '0.25rem 0 0 0' }}>
+                                  💬 {c.lastMessage || 'Buyer contacted regarding this scrap'}
+                                </p>
+                              </div>
+
+                              <button
+                                type="button"
+                                className="btn-primary btn-sm"
+                                onClick={() => navigate(`/chat/${c._id}`)}
+                                style={{ flexShrink: 0, padding: '0.5rem 1rem' }}
+                              >
+                                💬 Open Chat & Negotiate
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Location Matching Buyers Section (Seller Owner Only) */}
                 {isOwner && (

@@ -20,17 +20,27 @@ function SellerDashboard() {
   });
   const [loadingScraps, setLoadingScraps] = useState(false);
 
+  const [conversations, setConversations] = useState([]);
+  const [deals, setDeals] = useState([]);
+  const [loadingExtras, setLoadingExtras] = useState(false);
+
   useEffect(() => {
-    const loadScraps = async () => {
+    const loadScrapsAndOverview = async () => {
       setLoadingScraps(true);
+      setLoadingExtras(true);
       try {
-        const res = await api.getMyScraps();
-        if (res.success) {
-          setScraps(res.scraps || []);
-          if (res.stats) {
-            setStats(res.stats);
+        const [scrapRes, convRes, dealRes] = await Promise.all([
+          api.getMyScraps(),
+          api.getConversations(),
+          api.getUserDeals(),
+        ]);
+
+        if (scrapRes.success) {
+          setScraps(scrapRes.scraps || []);
+          if (scrapRes.stats) {
+            setStats(scrapRes.stats);
           } else {
-            const items = res.scraps || [];
+            const items = scrapRes.scraps || [];
             setStats({
               totalCount: items.length,
               availableCount: items.filter((s) => s.status === 'available').length,
@@ -40,19 +50,30 @@ function SellerDashboard() {
             });
           }
         }
+
+        if (convRes.success) {
+          setConversations(convRes.conversations || []);
+        }
+
+        if (dealRes.success) {
+          setDeals(dealRes.deals || []);
+        }
       } catch (err) {
-        console.error('Failed to load scrap summary:', err.message);
+        console.error('Failed to load dashboard overview data:', err.message);
       } finally {
         setLoadingScraps(false);
+        setLoadingExtras(false);
       }
     };
 
-    loadScraps();
+    loadScrapsAndOverview();
   }, []);
 
   const area = user?.location?.area;
   const city = user?.location?.city;
   const locationDisplay = area || city ? `${area ? area : ''}${area && city ? ', ' : ''}${city ? city : ''}` : 'Location not set yet';
+
+  const unreadChatCount = conversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
 
   return (
     <div className="dashboard-container">
@@ -64,7 +85,7 @@ function SellerDashboard() {
         <div className="welcome-card">
           <h1 className="welcome-title">Seller Dashboard</h1>
           <p className="welcome-sub">
-            Welcome, <strong>{user?.name}</strong>
+            Welcome back, <strong>{user?.name}</strong>
           </p>
 
           {/* Location Summary Card */}
@@ -129,8 +150,114 @@ function SellerDashboard() {
             )}
           </div>
 
-          <div className="placeholder-notice">
-            📌 <strong>Seller Overview</strong> — Buyers within your service regions receive instant location notifications when you publish new scrap listings.
+          {/* TWO COLUMN GRID FOR MESSAGES & DEALS OVERVIEW */}
+          <div className="dashboard-sections-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginTop: '1.25rem' }}>
+            {/* 1. Recent Messages & Price Offers Card */}
+            <div className="summary-card" style={{ background: '#FFFFFF', padding: '1.25rem', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+              <div className="summary-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h3 className="summary-card-title" style={{ margin: 0, fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  💬 Recent Messages & Offers
+                  {unreadChatCount > 0 && <span className="unread-dot-badge">{unreadChatCount} NEW</span>}
+                </h3>
+                <button className="btn-secondary btn-sm" onClick={() => navigate('/conversations')}>
+                  View All Messages ({conversations.length})
+                </button>
+              </div>
+
+              {loadingExtras ? (
+                <p className="text-muted">Loading messages...</p>
+              ) : conversations.length === 0 ? (
+                <div style={{ padding: '1rem', background: '#F8FAFC', borderRadius: '8px', textAlign: 'center', color: '#64748B' }}>
+                  💬 No buyer messages or offers received yet.
+                  <br />
+                  <span style={{ fontSize: '0.85rem' }}>When buyers contact you from the Marketplace, messages will appear here.</span>
+                </div>
+              ) : (
+                <div className="dashboard-convs-list" style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                  {conversations.slice(0, 3).map((conv) => (
+                    <div
+                      key={conv._id}
+                      onClick={() => navigate(`/chat/${conv._id}`)}
+                      style={{
+                        padding: '0.75rem',
+                        border: '1px solid #E2E8F0',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        background: conv.unreadCount > 0 ? '#F0FDF4' : '#F8FAFC',
+                        display: 'flex',
+                        justify: 'space-between',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontWeight: '600', fontSize: '0.9rem', color: '#1E293B' }}>
+                          👤 {conv.buyer?.name || 'Buyer'}
+                        </div>
+                        <div style={{ fontSize: '0.8rem', color: '#64748B' }}>
+                          📦 {conv.scrap?.title || 'Scrap Listing'}
+                        </div>
+                      </div>
+                      <button className="btn-primary btn-sm">Chat 💬</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* 2. Active Deals Overview Card */}
+            <div className="summary-card" style={{ background: '#FFFFFF', padding: '1.25rem', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+              <div className="summary-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h3 className="summary-card-title" style={{ margin: 0, fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  🤝 Active Scrap Deals
+                </h3>
+                <button className="btn-secondary btn-sm" onClick={() => navigate('/deals')}>
+                  View All Deals ({deals.length})
+                </button>
+              </div>
+
+              {loadingExtras ? (
+                <p className="text-muted">Loading deals...</p>
+              ) : deals.length === 0 ? (
+                <div style={{ padding: '1rem', background: '#F8FAFC', borderRadius: '8px', textAlign: 'center', color: '#64748B' }}>
+                  🤝 No active scrap deals yet.
+                  <br />
+                  <span style={{ fontSize: '0.85rem' }}>When you accept a buyer offer, agreed deals appear here for pickup scheduling.</span>
+                </div>
+              ) : (
+                <div className="dashboard-deals-list" style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                  {deals.slice(0, 3).map((deal) => (
+                    <div
+                      key={deal._id}
+                      onClick={() => navigate(`/deals/${deal._id}`)}
+                      style={{
+                        padding: '0.75rem',
+                        border: '1px solid #E2E8F0',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        background: '#FFFFFF',
+                        display: 'flex',
+                        justify: 'space-between',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontWeight: '600', fontSize: '0.9rem', color: '#1E293B' }}>
+                          📦 {deal.scrap?.title || 'Scrap'} — ₹{deal.agreedPrice?.toLocaleString('en-IN')}
+                        </div>
+                        <div style={{ fontSize: '0.8rem', color: '#64748B' }}>
+                          Buyer: {deal.buyer?.name || 'User'} • Status: {deal.status}
+                        </div>
+                      </div>
+                      <button className="btn-secondary btn-sm">Details ➔</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="placeholder-notice" style={{ marginTop: '1.25rem' }}>
+            📌 <strong>Seller Tip</strong> — Keep your profile location updated and respond to buyer enquiries promptly to close deals quickly.
           </div>
         </div>
       </main>

@@ -12,17 +12,18 @@ function BuyerDashboard() {
 
   const [regions, setRegions] = useState(user?.serviceRegions || []);
   const [loadingRegions, setLoadingRegions] = useState(false);
-  const [availableCount, setAvailableCount] = useState(null);
-  const [unreadNotifCount, setUnreadNotifCount] = useState(0);
+  const [localScraps, setLocalScraps] = useState([]);
 
   useEffect(() => {
     const loadData = async () => {
       setLoadingRegions(true);
       try {
-        const [regionsRes, scrapsRes, notifRes] = await Promise.all([
+        const [regionsRes, scrapsRes, notifRes, convsRes, dealsRes] = await Promise.all([
           api.getServiceRegions(),
-          api.getMarketplaceScraps({ limit: 1 }),
+          api.getMarketplaceScraps({ myRegionsOnly: 'true', limit: 3 }),
           api.getUnreadNotificationCount(),
+          api.getConversations(),
+          api.getUserDeals(),
         ]);
 
         if (regionsRes.success) {
@@ -30,9 +31,16 @@ function BuyerDashboard() {
         }
         if (scrapsRes.success) {
           setAvailableCount(scrapsRes.pagination?.total ?? scrapsRes.totalListings ?? 0);
+          setLocalScraps(scrapsRes.data || scrapsRes.scraps || []);
         }
         if (notifRes.success) {
           setUnreadNotifCount(notifRes.unreadCount || 0);
+        }
+        if (convsRes.success) {
+          setConversations(convsRes.conversations || []);
+        }
+        if (dealsRes.success) {
+          setDeals(dealsRes.deals || []);
         }
       } catch (err) {
         console.error('Failed to load dashboard data:', err.message);
@@ -44,9 +52,14 @@ function BuyerDashboard() {
     loadData();
   }, []);
 
-  const area = user?.location?.area;
   const city = user?.location?.city;
-  const locationDisplay = area || city ? `${area ? area : ''}${area && city ? ', ' : ''}${city ? city : ''}` : 'Location not set yet';
+  const district = user?.location?.district;
+  const state = user?.location?.state;
+  const locationDisplay = city || district
+    ? `${city ? city + ', ' : ''}${district ? district : ''}${state ? ' (' + state + ')' : ''}`
+    : 'Location not set yet';
+
+  const unreadChatCount = conversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
 
   return (
     <div className="dashboard-container">
@@ -58,7 +71,7 @@ function BuyerDashboard() {
         <div className="welcome-card">
           <h1 className="welcome-title">Buyer Dashboard</h1>
           <p className="welcome-sub">
-            Welcome, <strong>{user?.name}</strong>
+            Welcome back, <strong>{user?.name}</strong>
           </p>
 
           {/* Location Bar */}
@@ -66,13 +79,17 @@ function BuyerDashboard() {
             <div className="location-summary-header">
               <span className="location-summary-icon">📍</span>
               <div>
-                <div className="location-summary-label">Primary Location:</div>
+                <div className="location-summary-label">Primary Operating Location:</div>
                 <div className="location-summary-value">{locationDisplay}</div>
               </div>
             </div>
-            {(!area && !city) && (
-              <button className="btn-link-sm" onClick={() => navigate('/profile')}>
-                Update Location →
+            {(!district && !city) ? (
+              <button className="btn-primary btn-sm" onClick={() => navigate('/profile/edit')}>
+                Set Location →
+              </button>
+            ) : (
+              <button className="btn-secondary btn-sm" onClick={() => navigate('/profile/edit')}>
+                Edit Region
               </button>
             )}
           </div>
@@ -83,16 +100,16 @@ function BuyerDashboard() {
             <div className="buyer-summary-card highlight-card">
               <div className="summary-card-header">
                 <div>
-                  <h3 className="summary-card-title">Available Scrap Marketplace</h3>
-                  <p className="summary-card-sub">Browse items listed by local scrap sellers</p>
+                  <h3 className="summary-card-title">Region Scrap Marketplace</h3>
+                  <p className="summary-card-sub">Local scrap listed in your operating area</p>
                 </div>
               </div>
               <div className="summary-card-body">
                 <div className="summary-stat-large">
-                  {availableCount !== null ? `${availableCount} Listings` : 'Explore Listings'}
+                  {availableCount !== null ? `${availableCount} In My Region` : 'Explore Listings'}
                 </div>
                 <button className="btn-primary btn-full" onClick={() => navigate('/buyer/browse')}>
-                  🔍 Browse Scrap
+                  🔍 Browse Local Scrap
                 </button>
               </div>
             </div>
@@ -154,6 +171,108 @@ function BuyerDashboard() {
                   View Notifications
                 </button>
               </div>
+            </div>
+          </div>
+
+          {/* TWO COLUMN GRID FOR MESSAGES & DEALS OVERVIEW */}
+          <div className="dashboard-sections-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginTop: '1.25rem' }}>
+            {/* Recent Messages Card */}
+            <div className="summary-card" style={{ background: '#FFFFFF', padding: '1.25rem', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+              <div className="summary-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h3 className="summary-card-title" style={{ margin: 0, fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  💬 Active Conversations & Offers
+                  {unreadChatCount > 0 && <span className="unread-dot-badge">{unreadChatCount} NEW</span>}
+                </h3>
+                <button className="btn-secondary btn-sm" onClick={() => navigate('/conversations')}>
+                  Messages ({conversations.length})
+                </button>
+              </div>
+
+              {conversations.length === 0 ? (
+                <div style={{ padding: '1rem', background: '#F8FAFC', borderRadius: '8px', textAlign: 'center', color: '#64748B' }}>
+                  💬 No active chats yet.
+                  <br />
+                  <span style={{ fontSize: '0.85rem' }}>Browse marketplace and click "Contact Seller" to start negotiating scrap price.</span>
+                </div>
+              ) : (
+                <div className="dashboard-convs-list" style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                  {conversations.slice(0, 3).map((conv) => (
+                    <div
+                      key={conv._id}
+                      onClick={() => navigate(`/chat/${conv._id}`)}
+                      style={{
+                        padding: '0.75rem',
+                        border: '1px solid #E2E8F0',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        background: conv.unreadCount > 0 ? '#F0FDF4' : '#F8FAFC',
+                        display: 'flex',
+                        justify: 'space-between',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontWeight: '600', fontSize: '0.9rem', color: '#1E293B' }}>
+                          📦 {conv.scrap?.title || 'Scrap Item'}
+                        </div>
+                        <div style={{ fontSize: '0.8rem', color: '#64748B' }}>
+                          Seller: {conv.seller?.name || 'Seller'}
+                        </div>
+                      </div>
+                      <button className="btn-primary btn-sm">Open Chat 💬</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Active Deals Card */}
+            <div className="summary-card" style={{ background: '#FFFFFF', padding: '1.25rem', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+              <div className="summary-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h3 className="summary-card-title" style={{ margin: 0, fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  🤝 Purchased Scrap Deals
+                </h3>
+                <button className="btn-secondary btn-sm" onClick={() => navigate('/deals')}>
+                  My Deals ({deals.length})
+                </button>
+              </div>
+
+              {deals.length === 0 ? (
+                <div style={{ padding: '1rem', background: '#F8FAFC', borderRadius: '8px', textAlign: 'center', color: '#64748B' }}>
+                  🤝 No scrap deals yet.
+                  <br />
+                  <span style={{ fontSize: '0.85rem' }}>When a seller accepts your price offer, agreed deals appear here.</span>
+                </div>
+              ) : (
+                <div className="dashboard-deals-list" style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                  {deals.slice(0, 3).map((deal) => (
+                    <div
+                      key={deal._id}
+                      onClick={() => navigate(`/deals/${deal._id}`)}
+                      style={{
+                        padding: '0.75rem',
+                        border: '1px solid #E2E8F0',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        background: '#FFFFFF',
+                        display: 'flex',
+                        justify: 'space-between',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontWeight: '600', fontSize: '0.9rem', color: '#1E293B' }}>
+                          📦 {deal.scrap?.title || 'Scrap'} — ₹{deal.agreedPrice?.toLocaleString('en-IN')}
+                        </div>
+                        <div style={{ fontSize: '0.8rem', color: '#64748B' }}>
+                          Seller: {deal.seller?.name || 'Seller'} • Status: {deal.status}
+                        </div>
+                      </div>
+                      <button className="btn-secondary btn-sm">Details ➔</button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

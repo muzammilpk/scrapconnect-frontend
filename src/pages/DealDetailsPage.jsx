@@ -7,9 +7,13 @@ import ReviewForm from '../components/ReviewForm';
 import StarRating from '../components/StarRating';
 import api from '../services/api';
 
+import Navbar from '../components/Navbar';
+import usePageTitle from '../hooks/usePageTitle';
+
 function DealDetailsPage() {
+  usePageTitle('Deal Details');
   const { id: dealId } = useParams();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   const [deal, setDeal] = useState(null);
@@ -236,24 +240,7 @@ function DealDetailsPage() {
   return (
     <div className="dashboard-container">
       {/* Navbar */}
-      <header className="navbar">
-        <div className="navbar-brand" onClick={() => navigate('/deals')} style={{ cursor: 'pointer' }}>
-          <span>♻️</span> ScrapConnect
-        </div>
-
-        <div className="user-badge">
-          <button className="btn-secondary" onClick={() => navigate('/deals')}>
-            ← Back to My Deals
-          </button>
-          <div className="user-info">
-            <div className="user-name">{user?.name}</div>
-            <span className="role-tag">{user?.role === 'buyer' ? 'Buyer 🛒' : 'Seller ♻️'}</span>
-          </div>
-          <button className="btn-logout" onClick={logout}>
-            Logout
-          </button>
-        </div>
-      </header>
+      <Navbar />
 
       {/* Main Content */}
       <main className="dashboard-content">
@@ -492,12 +479,12 @@ function DealDetailsPage() {
           </div>
         )}
 
-        {/* Pickup Details Modal */}
         <PickupModal
           isOpen={showPickupModal}
           onClose={() => setShowPickupModal(false)}
           onSubmit={handleSavePickupDetails}
           pickupDetails={pickup}
+          defaultAddress={scrap?.location ? `${scrap.location.area ? `${scrap.location.area}, ` : ''}${scrap.location.city || ''}, ${scrap.location.district || ''}, ${scrap.location.state || ''} ${scrap.location.pincode || ''}`.trim() : ''}
           submitting={submitting}
         />
       </main>

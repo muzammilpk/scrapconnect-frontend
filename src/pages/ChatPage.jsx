@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
 import usePageTitle from '../hooks/usePageTitle';
@@ -13,6 +13,7 @@ function ChatPage() {
   const { id: conversationId } = useParams();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [conversation, setConversation] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -25,7 +26,7 @@ function ChatPage() {
   const [offers, setOffers] = useState([]);
   const [activeOffer, setActiveOffer] = useState(null);
   const [acceptedOffer, setAcceptedOffer] = useState(null);
-  const [showOfferModal, setShowOfferModal] = useState(false);
+  const [showOfferModal, setShowOfferModal] = useState(Boolean(location.state?.openOfferModal));
   const [counterParentOffer, setCounterParentOffer] = useState(null);
   const [submittingOffer, setSubmittingOffer] = useState(false);
   const [showOfferHistory, setShowOfferHistory] = useState(false);

@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import Navbar from '../components/Navbar';
+import usePageTitle from '../hooks/usePageTitle';
 import api from '../services/api';
 
 function AccountSettingsPage() {
-  const { user, logout } = useAuth();
+  usePageTitle('Account Settings');
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   // Password state
@@ -28,6 +31,11 @@ function AccountSettingsPage() {
   const [prefsLoading, setPrefsLoading] = useState(false);
   const [prefsSuccess, setPrefsSuccess] = useState('');
   const [prefsError, setPrefsError] = useState('');
+
+  // Deactivation Modal state
+  const [showDeactivateModal, setShowDeactivateModal] = useState(false);
+  const [deactivating, setDeactivating] = useState(false);
+  const [deactivateError, setDeactivateError] = useState('');
 
   // Fetch notification preferences on mount
   useEffect(() => {
@@ -141,27 +149,7 @@ function AccountSettingsPage() {
   return (
     <div className="dashboard-container">
       {/* Top Navbar */}
-      <header className="navbar">
-        <div className="navbar-brand" onClick={handleDashboardNav} style={{ cursor: 'pointer' }}>
-          <span>♻️</span> ScrapConnect
-        </div>
-
-        <div className="user-badge">
-          <button className="btn-secondary" onClick={() => navigate('/profile')}>
-            👤 Profile
-          </button>
-          <button className="btn-secondary" onClick={handleDashboardNav}>
-            ← Dashboard
-          </button>
-          <div className="user-info">
-            <div className="user-name">{user?.name}</div>
-            <span className="role-tag">{user?.role?.toUpperCase()}</span>
-          </div>
-          <button className="btn-logout" onClick={logout}>
-            Logout
-          </button>
-        </div>
-      </header>
+      <Navbar />
 
       {/* Main Content */}
       <main className="dashboard-content">

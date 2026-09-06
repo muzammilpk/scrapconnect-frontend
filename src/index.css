@@ -296,6 +296,134 @@ a:hover {
   color: var(--color-muted-text);
 }
 
+/* Glassmorphism Auth Card & Modern Auth Enhancements */
+.glass-auth-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(22, 163, 74, 0.15);
+  box-shadow: 0 20px 40px -15px rgba(20, 83, 45, 0.12), 0 0 0 1px rgba(255, 255, 255, 0.6) inset;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.input-with-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-icon {
+  position: absolute;
+  left: 0.85rem;
+  font-size: 1rem;
+  pointer-events: none;
+  opacity: 0.75;
+}
+
+.form-input.icon-padded {
+  padding-left: 2.5rem;
+}
+
+.forgot-password-link {
+  font-size: 0.825rem;
+  color: var(--color-primary);
+  font-weight: 600;
+  transition: opacity 0.2s ease;
+}
+
+.forgot-password-link:hover {
+  color: var(--color-primary-hover);
+  text-decoration: underline;
+}
+
+.demo-accounts-pill {
+  background: var(--color-light-green);
+  border: 1px dashed var(--color-primary);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.demo-label {
+  font-size: 0.775rem;
+  font-weight: 700;
+  color: var(--color-dark-green);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.demo-btns-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.btn-demo-chip {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-dark-green);
+  background-color: var(--color-white);
+  border: 1px solid rgba(22, 163, 74, 0.3);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-demo-chip:hover {
+  background-color: var(--color-primary);
+  color: var(--color-white);
+  border-color: var(--color-primary);
+  transform: translateY(-1px);
+}
+
+.dev-token-banner {
+  background: #F0FDF4;
+  border: 1px solid #86EFAC;
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.25rem;
+  text-align: center;
+}
+
+.dev-token-badge {
+  display: inline-block;
+  background: #16A34A;
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+  text-transform: uppercase;
+  margin-right: 0.5rem;
+}
+
+.token-input {
+  letter-spacing: 4px;
+  font-weight: 700;
+  font-size: 1.1rem;
+  text-align: center;
+}
+
+.btn-secondary-link {
+  background: none;
+  border: none;
+  color: var(--color-muted-text);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.4rem;
+  transition: color 0.2s ease;
+}
+
+.btn-secondary-link:hover {
+  color: var(--color-main-text);
+}
+
+
 /* Dashboard Layout */
 .dashboard-container {
   min-height: 100vh;
@@ -805,13 +933,14 @@ a:hover {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(15, 23, 42, 0.6);
+  background-color: rgba(15, 23, 42, 0.65);
   backdrop-filter: blur(4px);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
   padding: 1rem;
+  overflow-y: auto;
 }
 
 .modal-card {
@@ -819,9 +948,21 @@ a:hover {
   border-radius: var(--radius-lg);
   width: 100%;
   max-width: 520px;
+  max-height: calc(100vh - 2rem);
+  max-height: calc(100dvh - 2rem);
+  display: flex;
+  flex-direction: column;
   box-shadow: var(--shadow-lg);
   overflow: hidden;
   animation: modalFadeIn 0.2s ease-out;
+}
+
+.modal-card form {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .modal-confirm {
@@ -840,6 +981,7 @@ a:hover {
 }
 
 .modal-header {
+  flex-shrink: 0;
   padding: 1.25rem 1.5rem;
   border-bottom: 1px solid var(--color-border);
   display: flex;
@@ -868,17 +1010,23 @@ a:hover {
 .modal-body {
   padding: 1.5rem;
   color: var(--color-main-text);
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
 }
 
+.modal-footer,
 .modal-actions {
+  flex-shrink: 0;
   display: flex;
   gap: 0.75rem;
   justify-content: flex-end;
-  margin-top: 1.25rem;
+  margin-top: 0;
   padding: 1rem 1.5rem;
   background-color: var(--color-bg);
   border-top: 1px solid var(--color-border);
 }
+
 
 .btn-danger {
   padding: 0.6rem 1.2rem;
@@ -5589,9 +5737,80 @@ input:checked + .switch-slider:before {
     gap: 1rem;
     align-items: center;
   }
-  .section-title {
-    font-size: 1.75rem;
+}
+
+/* MODERN UI ENHANCEMENTS & PICKUP MODAL REDESIGN */
+.btn-pill-preset {
+  background: #F1F5F9;
+  border: 1px solid #CBD5E1;
+  color: #334155;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.4rem 0.85rem;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-pill-preset:hover {
+  background: #E2E8F0;
+  color: #0F172A;
+  transform: translateY(-1px);
+}
+
+.btn-pill-preset.active {
+  background: #DCFCE7;
+  border-color: #16A34A;
+  color: #15803D;
+  box-shadow: 0 1px 4px rgba(22, 163, 74, 0.2);
+}
+
+.time-slot-card {
+  background: #FFFFFF;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 10px;
+  padding: 0.65rem 0.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #334155;
+}
+
+.time-slot-card:hover {
+  border-color: #94A3B8;
+  background: #F8FAFC;
+  transform: translateY(-1px);
+}
+
+.time-slot-card.selected {
+  border-color: #16A34A;
+  background: #F0FDF4;
+  color: #15803D;
+  box-shadow: 0 2px 6px rgba(22, 163, 74, 0.15);
+}
+
+.modal-pickup-redesign {
+  box-shadow: 0 20px 40px -10px rgba(15, 23, 42, 0.25);
+  animation: modalSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
   }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.dashboard-sections-grid .summary-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dashboard-sections-grid .summary-card:hover {
+  box-shadow: 0 8px 20px -4px rgba(0, 0, 0, 0.06);
 }
 
 

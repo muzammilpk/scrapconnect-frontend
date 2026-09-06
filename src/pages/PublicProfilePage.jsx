@@ -1,14 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import Navbar from '../components/Navbar';
+import usePageTitle from '../hooks/usePageTitle';
 import api from '../services/api';
 import StarRating from '../components/StarRating';
 import ReviewList from '../components/ReviewList';
 import ScrapCard from '../components/ScrapCard';
 
 function PublicProfilePage() {
+  usePageTitle('Public Profile');
   const { id } = useParams();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   const [profile, setProfile] = useState(null);
@@ -81,31 +84,7 @@ function PublicProfilePage() {
   return (
     <div className="dashboard-container">
       {/* Top Navbar */}
-      <header className="navbar">
-        <div className="navbar-brand" onClick={handleDashboardNav} style={{ cursor: 'pointer' }}>
-          <span>♻️</span> ScrapConnect
-        </div>
-
-        <div className="user-badge">
-          <button className="btn-secondary" onClick={() => navigate(-1)}>
-            ← Back
-          </button>
-          <button className="btn-secondary" onClick={handleDashboardNav}>
-            Dashboard
-          </button>
-          {user && (
-            <div className="user-info">
-              <div className="user-name">{user?.name}</div>
-              <span className="role-tag">{user?.role?.toUpperCase()}</span>
-            </div>
-          )}
-          {user && (
-            <button className="btn-logout" onClick={logout}>
-              Logout
-            </button>
-          )}
-        </div>
-      </header>
+      <Navbar />
 
       {/* Main Content */}
       <main className="dashboard-content">

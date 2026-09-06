@@ -16,6 +16,12 @@ function BrowseScrapPage() {
   const [scraps, setScraps] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
+  const [hasNoServiceRegions, setHasNoServiceRegions] = useState(false);
+
+  // Region filter mode: 'my_regions' (default for buyers) or 'all_regions'
+  const [regionFilterMode, setRegionFilterMode] = useState(
+    user?.role === 'buyer' ? 'my_regions' : 'all_regions'
+  );
 
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState('');
@@ -42,6 +48,7 @@ function BrowseScrapPage() {
   const fetchScraps = useCallback(async () => {
     setLoading(true);
     setErrorMsg('');
+    setHasNoServiceRegions(false);
 
     try {
       const params = {
@@ -55,6 +62,7 @@ function BrowseScrapPage() {
         minWeight: filters.minWeight,
         maxWeight: filters.maxWeight,
         sort,
+        myRegionsOnly: regionFilterMode === 'my_regions' ? 'true' : 'false',
         page,
         limit,
       };
@@ -65,6 +73,7 @@ function BrowseScrapPage() {
         setPage(res.pagination?.page || res.page || 1);
         setTotalPages(res.pagination?.totalPages || res.totalPages || 1);
         setTotalListings(res.pagination?.total || res.totalListings || 0);
+        setHasNoServiceRegions(Boolean(res.hasNoServiceRegions));
       }
     } catch (err) {
       console.error('Marketplace API error:', err);
@@ -72,7 +81,7 @@ function BrowseScrapPage() {
     } finally {
       setLoading(false);
     }
-  }, [activeSearch, filters, sort, page, limit]);
+  }, [activeSearch, filters, sort, regionFilterMode, page, limit]);
 
   useEffect(() => {
     fetchScraps();
@@ -113,6 +122,8 @@ function BrowseScrapPage() {
       setActiveSearch('');
     } else if (key === 'category') {
       setFilters((prev) => ({ ...prev, category: 'All Categories' }));
+    } else if (key === 'my_regions') {
+      setRegionFilterMode('all_regions');
     } else {
       setFilters((prev) => ({ ...prev, [key]: '' }));
     }
@@ -120,6 +131,7 @@ function BrowseScrapPage() {
 
   // Helper to collect active filter tags
   const activeTags = [];
+  if (regionFilterMode === 'my_regions') activeTags.push({ key: 'my_regions', label: '🎯 Scope: My Operating Regions' });
   if (activeSearch) activeTags.push({ key: 'search', label: `Search: "${activeSearch}"` });
   if (filters.category && filters.category !== 'All Categories') activeTags.push({ key: 'category', label: filters.category });
   if (filters.state) activeTags.push({ key: 'state', label: `State: ${filters.state}` });
@@ -145,6 +157,59 @@ function BrowseScrapPage() {
 
           {/* SEARCH & FILTERS CONTROLS */}
           <div className="marketplace-filter-card">
+            {/* REGION SCOPE TOGGLE BAR (MY REGIONS vs ALL REGIONS) */}
+            {user?.role === 'buyer' && (
+              <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem', alignItems: 'center', flexWrap: 'wrap', background: '#F8FAFC', padding: '0.75rem 1rem', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
+                <span style={{ fontWeight: 700, fontSize: '0.85rem', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  🎯 Marketplace Scope:
+                </span>
+
+                <button
+                  type="button"
+                  onClick={() => { setPage(1); setRegionFilterMode('my_regions'); }}
+                  style={{
+                    background: regionFilterMode === 'my_regions' ? '#166534' : '#FFFFFF',
+                    color: regionFilterMode === 'my_regions' ? '#FFFFFF' : '#334155',
+                    border: regionFilterMode === 'my_regions' ? '1px solid #166534' : '1px solid #CBD5E1',
+                    fontWeight: 700,
+                    fontSize: '0.875rem',
+                    padding: '0.4rem 1rem',
+                    borderRadius: '20px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    boxShadow: regionFilterMode === 'my_regions' ? '0 2px 4px rgba(22, 101, 52, 0.2)' : 'none',
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  🎯 My Operating Regions ({user?.location?.district || user?.serviceRegions?.[0]?.district || 'Configured Regions'})
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => { setPage(1); setRegionFilterMode('all_regions'); }}
+                  style={{
+                    background: regionFilterMode === 'all_regions' ? '#0F172A' : '#FFFFFF',
+                    color: regionFilterMode === 'all_regions' ? '#FFFFFF' : '#334155',
+                    border: regionFilterMode === 'all_regions' ? '1px solid #0F172A' : '1px solid #CBD5E1',
+                    fontWeight: 700,
+                    fontSize: '0.875rem',
+                    padding: '0.4rem 1rem',
+                    borderRadius: '20px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    boxShadow: regionFilterMode === 'all_regions' ? '0 2px 4px rgba(15, 23, 42, 0.2)' : 'none',
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  🌐 All Regions (Nationwide)
+                </button>
+              </div>
+            )}
+
             {/* Search Bar Row */}
             <form onSubmit={handleSearchSubmit} className="search-bar-row">
               <div className="search-input-wrapper">
@@ -267,15 +332,36 @@ function BrowseScrapPage() {
                 <ScrapCardSkeleton key={idx} />
               ))}
             </div>
+          ) : hasNoServiceRegions ? (
+            /* NO SERVICE REGIONS CONFIGURED STATE */
+            <div className="empty-listings-card" style={{ border: '2px dashed #F59E0B', background: '#FFFBEB' }}>
+              <div className="empty-icon">📍</div>
+              <h3 style={{ color: '#B45309' }}>No Service Regions Selected</h3>
+              <p style={{ color: '#92400E', maxWidth: '500px', margin: '0.5rem auto' }}>
+                Please select the places where you are willing and able to collect scrap to see relevant listings in your service areas.
+              </p>
+              <button
+                className="btn-primary"
+                onClick={() => navigate('/buyer/service-regions')}
+                style={{ marginTop: '1rem', background: '#D97706', borderColor: '#B45309' }}
+              >
+                ➕ Set Service Regions
+              </button>
+            </div>
           ) : scraps.length === 0 ? (
-            /* NO RESULTS STATE */
+            /* NO MATCHING SCRAPS IN REGIONS STATE */
             <div className="empty-listings-card">
               <div className="empty-icon">🔍</div>
-              <h3>No scrap listings found.</h3>
-              <p>Try changing your search or filters.</p>
-              <button className="btn-primary" onClick={handleClearFilters} style={{ marginTop: '1rem' }}>
-                Clear Filters
-              </button>
+              <h3>No scrap available in your selected service regions</h3>
+              <p>Try adding another service region or clearing search/category filters.</p>
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', marginTop: '1rem' }}>
+                <button className="btn-primary" onClick={() => navigate('/buyer/service-regions')}>
+                  📍 Manage Service Regions
+                </button>
+                <button className="btn-secondary" onClick={handleClearFilters}>
+                  Clear Filters
+                </button>
+              </div>
             </div>
           ) : (
             /* SCRAP LISTINGS GRID */

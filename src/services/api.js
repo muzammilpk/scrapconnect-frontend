@@ -112,6 +112,22 @@ export const api = {
     });
   },
 
+  // Request password reset token / code
+  forgotPassword: async (identifier) => {
+    return await request('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ identifier }),
+    });
+  },
+
+  // Reset password using token
+  resetPassword: async (resetData) => {
+    return await request('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify(resetData),
+    });
+  },
+
   // Deactivate user account
   deactivateAccount: async () => {
     return await request('/users/me/status', {

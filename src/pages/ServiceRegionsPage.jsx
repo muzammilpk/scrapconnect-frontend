@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
 import usePageTitle from '../hooks/usePageTitle';
 import api from '../services/api';
+import { getStates, getDistricts, getCities, INDIAN_STATES_AND_DISTRICTS } from '../utils/locationData';
 
 function ServiceRegionsPage() {
   usePageTitle('Service Regions');
@@ -54,10 +55,15 @@ function ServiceRegionsPage() {
 
   const openAddModal = () => {
     setEditingRegion(null);
+    const defaultSt = user?.location?.state || 'Kerala';
+    const dsts = getDistricts(defaultSt);
+    const defaultDst = user?.location?.district || dsts[0] || '';
+    const cities = getCities(defaultSt, defaultDst);
+
     setFormData({
-      state: 'Kerala',
-      district: '',
-      city: '',
+      state: defaultSt,
+      district: defaultDst,
+      city: cities[0] || '',
       area: '',
       pincode: '',
     });
@@ -246,50 +252,109 @@ function ServiceRegionsPage() {
 
               <div className="form-group">
                 <label className="form-label" htmlFor="state">
-                  State <span className="required-star">*</span>
+                  Select State <span className="required-star">*</span>
                 </label>
-                <input
+                <select
                   id="state"
-                  type="text"
                   name="state"
                   className="form-input"
                   value={formData.state}
-                  onChange={handleChange}
-                  placeholder="e.g. Kerala"
+                  onChange={(e) => {
+                    const st = e.target.value;
+                    const dsts = getDistricts(st);
+                    const firstDst = dsts[0] || '';
+                    const cities = getCities(st, firstDst);
+                    setFormData((prev) => ({
+                      ...prev,
+                      state: st,
+                      district: firstDst,
+                      city: cities[0] || '',
+                    }));
+                  }}
+                  style={{ fontWeight: 600 }}
                   required
-                />
+                >
+                  {getStates().map((st) => (
+                    <option key={st} value={st}>
+                      {st}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="form-row">
                 <div className="form-group">
                   <label className="form-label" htmlFor="district">
-                    District <span className="required-star">*</span>
+                    Select District <span className="required-star">*</span>
                   </label>
-                  <input
-                    id="district"
-                    type="text"
-                    name="district"
-                    className="form-input"
-                    value={formData.district}
-                    onChange={handleChange}
-                    placeholder="e.g. Kottayam"
-                    required
-                  />
+                  {getDistricts(formData.state).length > 0 ? (
+                    <select
+                      id="district"
+                      name="district"
+                      className="form-input"
+                      value={formData.district}
+                      onChange={(e) => {
+                        const dst = e.target.value;
+                        const cities = getCities(formData.state, dst);
+                        setFormData((prev) => ({
+                          ...prev,
+                          district: dst,
+                          city: cities[0] || '',
+                        }));
+                      }}
+                      style={{ fontWeight: 600 }}
+                      required
+                    >
+                      {getDistricts(formData.state).map((dst) => (
+                        <option key={dst} value={dst}>
+                          {dst}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      id="district"
+                      type="text"
+                      name="district"
+                      className="form-input"
+                      value={formData.district}
+                      onChange={handleChange}
+                      placeholder="e.g. Kottayam"
+                      required
+                    />
+                  )}
                 </div>
 
                 <div className="form-group">
                   <label className="form-label" htmlFor="city">
-                    City / Area (Optional)
+                    Select City / Town
                   </label>
-                  <input
-                    id="city"
-                    type="text"
-                    name="city"
-                    className="form-input"
-                    value={formData.city}
-                    onChange={handleChange}
-                    placeholder="e.g. Pala (leave empty for entire district)"
-                  />
+                  {getCities(formData.state, formData.district).length > 0 ? (
+                    <select
+                      id="city"
+                      name="city"
+                      className="form-input"
+                      value={formData.city}
+                      onChange={handleChange}
+                      style={{ fontWeight: 600 }}
+                    >
+                      {getCities(formData.state, formData.district).map((ct) => (
+                        <option key={ct} value={ct}>
+                          {ct}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      id="city"
+                      type="text"
+                      name="city"
+                      className="form-input"
+                      value={formData.city}
+                      onChange={handleChange}
+                      placeholder="e.g. Pala"
+                    />
+                  )}
                 </div>
               </div>
 

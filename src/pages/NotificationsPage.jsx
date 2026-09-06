@@ -172,7 +172,7 @@ function NotificationsPage() {
           </div>
 
           {unreadCount > 0 && (
-            <button className="btn-secondary" onClick={handleMarkAllRead}>
+            <button className="btn-secondary" onClick={handleMarkAllAsRead}>
               ✓ Mark All as Read
             </button>
           )}

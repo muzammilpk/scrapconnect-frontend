@@ -9,6 +9,7 @@ function ScrapCard({ scrap, detailPath }) {
   const coverImg = scrap.images && scrap.images.length > 0 ? scrap.images[0].url : null;
   const locationStr = [scrap.location?.area, scrap.location?.city, scrap.location?.district]
     .filter(Boolean)
+    .filter((v, i, a) => a.indexOf(v) === i)
     .join(', ');
 
   const handleCardClick = () => {
@@ -59,7 +60,7 @@ function ScrapCard({ scrap, detailPath }) {
         </div>
 
         <div className="scrap-meta-row" style={{ marginTop: '0.4rem' }}>
-          <div className="meta-item">
+          <div className="meta-item" style={{ color: '#1E293B', fontWeight: '600' }}>
             <span className="meta-icon">📍</span>
             <span>{locationStr || 'Location specified'}</span>
           </div>

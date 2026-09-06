@@ -70,6 +70,7 @@ function ProfilePage() {
         ]);
 
         if (profRes.success && profRes.user) {
+          setUser(profRes.user);
           setRatingSummary(profRes.user.ratingSummary || {
             averageRating: 0,
             totalReviews: 0,
@@ -217,26 +218,12 @@ function ProfilePage() {
             </div>
 
             <div className="profile-action-area" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-              {!isEditing ? (
-                <>
-                  <button className="btn-primary edit-toggle-btn" onClick={() => setIsEditing(true)}>
-                    ✏️ Edit Profile
-                  </button>
-                  <button className="btn-secondary" onClick={() => navigate('/account-settings')}>
-                    ⚙️ Account Settings
-                  </button>
-                </>
-              ) : (
-                <button
-                  className="btn-secondary cancel-toggle-btn"
-                  onClick={() => {
-                    setIsEditing(false);
-                    setErrorMsg('');
-                  }}
-                >
-                  Cancel
-                </button>
-              )}
+              <button className="btn-primary edit-toggle-btn" onClick={() => navigate('/profile/edit')}>
+                ✏️ Edit Profile & Select Region
+              </button>
+              <button className="btn-secondary" onClick={() => navigate('/account-settings')}>
+                ⚙️ Account Settings
+              </button>
             </div>
           </div>
 
@@ -354,7 +341,12 @@ function ProfilePage() {
 
               {/* Saved Location Details */}
               <div className="profile-card">
-                <h3 className="card-title">📍 Saved Location & Address</h3>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                  <h3 className="card-title" style={{ margin: 0 }}>📍 Saved Primary Location & Region</h3>
+                  <button className="btn-secondary btn-sm" onClick={() => navigate('/profile/edit')}>
+                    📍 Select / Edit Region
+                  </button>
+                </div>
 
                 <div className="info-group">
                   <label className="info-label">Street / House Address</label>

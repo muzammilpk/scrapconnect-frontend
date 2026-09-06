@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
@@ -31,8 +31,19 @@ function RegisterPage() {
       return;
     }
 
-    if (!email.trim() && !mobileNumber.trim()) {
-      setErrorMsg('Please provide either an email address or mobile number.');
+    if (!email.trim()) {
+      setErrorMsg('Please enter your email address.');
+      return;
+    }
+
+    if (!mobileNumber.trim()) {
+      setErrorMsg('Please enter your mobile number.');
+      return;
+    }
+
+    const mobileRegex = /^[0-9+\s-]{10,15}$/;
+    if (!mobileRegex.test(mobileNumber.trim())) {
+      setErrorMsg('Please enter a valid mobile number (10 to 15 digits).');
       return;
     }
 
@@ -49,9 +60,9 @@ function RegisterPage() {
     try {
       setIsSubmitting(true);
       const user = await register({
-        name,
-        email: email.trim() || undefined,
-        mobileNumber: mobileNumber.trim() || undefined,
+        name: name.trim(),
+        email: email.trim(),
+        mobileNumber: mobileNumber.trim(),
         password,
         role,
       });
@@ -71,7 +82,7 @@ function RegisterPage() {
 
   return (
     <div className="auth-wrapper">
-      <div className="auth-card">
+      <div className="auth-card glass-auth-card">
         <div className="brand-header">
           <div className="brand-logo">
             <span className="brand-logo-icon">♻️</span>
@@ -109,45 +120,56 @@ function RegisterPage() {
 
           <div className="form-group">
             <label className="form-label" htmlFor="name">
-              Full Name
+              Full Name <span className="required-star">*</span>
             </label>
-            <input
-              id="name"
-              type="text"
-              className="form-input"
-              placeholder="e.g. John Doe"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-            />
+            <div className="input-with-icon">
+              <span className="input-icon">👤</span>
+              <input
+                id="name"
+                type="text"
+                className="form-input icon-padded"
+                placeholder="e.g. Jane Doe"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+              />
+            </div>
           </div>
 
           <div className="form-group">
             <label className="form-label" htmlFor="email">
-              Email Address <span style={{ color: 'var(--color-muted-text)', fontWeight: 400 }}>(Optional if mobile provided)</span>
+              Email Address <span className="required-star">*</span>
             </label>
-            <input
-              id="email"
-              type="email"
-              className="form-input"
-              placeholder="name@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
+            <div className="input-with-icon">
+              <span className="input-icon">✉️</span>
+              <input
+                id="email"
+                type="email"
+                className="form-input icon-padded"
+                placeholder="name@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
           </div>
 
           <div className="form-group">
             <label className="form-label" htmlFor="mobileNumber">
-              Mobile Number <span style={{ color: 'var(--color-muted-text)', fontWeight: 400 }}>(Optional if email provided)</span>
+              Mobile Number <span className="required-star">*</span>
             </label>
-            <input
-              id="mobileNumber"
-              type="tel"
-              className="form-input"
-              placeholder="10-digit mobile number"
-              value={mobileNumber}
-              onChange={(e) => setMobileNumber(e.target.value)}
-            />
+            <div className="input-with-icon">
+              <span className="input-icon">📞</span>
+              <input
+                id="mobileNumber"
+                type="tel"
+                className="form-input icon-padded"
+                placeholder="10-digit mobile number"
+                value={mobileNumber}
+                onChange={(e) => setMobileNumber(e.target.value)}
+                required
+              />
+            </div>
           </div>
 
           <div className="form-group">
@@ -206,3 +228,4 @@ function RegisterPage() {
 }
 
 export default RegisterPage;
+
