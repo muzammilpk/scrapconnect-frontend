@@ -13,6 +13,10 @@ function BuyerDashboard() {
   const [regions, setRegions] = useState(user?.serviceRegions || []);
   const [loadingRegions, setLoadingRegions] = useState(false);
   const [localScraps, setLocalScraps] = useState([]);
+  const [availableCount, setAvailableCount] = useState(null);
+  const [unreadNotifCount, setUnreadNotifCount] = useState(0);
+  const [conversations, setConversations] = useState([]);
+  const [deals, setDeals] = useState([]);
 
   useEffect(() => {
     const loadData = async () => {
